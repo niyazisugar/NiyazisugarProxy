@@ -1,7 +1,7 @@
-name: Validate local diagnostics
+name: Validate desktop interface and dual routing
 on:
   push:
-    branches: [diagnostics-relay]
+    branches: [premium-clients]
 permissions:
   contents: read
 jobs:
@@ -9,6 +9,28 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Compile app and verify offline local logs
+      - name: Compile and test
         shell: pwsh
         run: ./build.ps1
+      - name: Windows interface smoke test
+        shell: pwsh
+        run: |
+          & ./dist/Tests.exe --ui-smoke
+          if ($LASTEXITCODE -ne 0) { throw 'UI smoke failed' }
+      - name: Validate with official engine
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $r = gh api repos/SagerNet/sing-box/releases/tags/v1.14.2 | ConvertFrom-Json
+          $a = $r.assets | Where-Object name -eq 'sing-box-1.14.2-windows-amd64.zip'
+          Invoke-WebRequest $a.browser_download_url -OutFile engine.zip
+          if ((Get-FileHash engine.zip -Algorithm SHA256).Hash.ToLowerInvariant() -ne $a.digest.Substring(7).ToLowerInvariant()) { throw 'Engine checksum mismatch' }
+          Expand-Archive engine.zip engine
+          $bin = Get-ChildItem engine -Filter sing-box.exe -Recurse | Select-Object -First 1
+          & ./dist/Tests.exe --config-check $bin.FullName
+          if ($LASTEXITCODE -ne 0) { throw 'Engine validation failed' }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: desktop-preview
+          path: ui-preview.png

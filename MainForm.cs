@@ -41,7 +41,7 @@ class MainForm : Form {
     TextBox logs=new TextBox(); Label status=new Label();
     Button load,add,connect,stop,update,sendReport;
     CheckBox second=new CheckBox(); ComboBox theme=new ComboBox(),accent=new ComboBox();
-    TabControl tabs=new TabControl(); AppPreferences preferences;
+    Panel tabs=new Panel(); Panel[] pages;Button[] navigation=new Button[3];int selectedPage; AppPreferences preferences;
     UpdateRelease availableUpdate; bool updateBusy; string localLogPath;
     Process engine; string configFile; bool starting,closing,ready,initializing=true;
     readonly JavaScriptSerializer json=new JavaScriptSerializer();
@@ -58,16 +58,16 @@ class MainForm : Form {
         header.MouseDown+=DragWindow;foreach(Control c in header.Controls)c.MouseDown+=DragWindow;
         var minimize=MakeButton("—",header,890,20,40,delegate{WindowState=FormWindowState.Minimized;});
         var close=MakeButton("×",header,936,20,40,delegate{Close();});
-        tabs.SetBounds(22,145,956,613);tabs.Font=Font;tabs.Appearance=TabAppearance.FlatButtons;tabs.ItemSize=new Size(0,1);tabs.SizeMode=TabSizeMode.Fixed;Controls.Add(tabs);
-        var dashboard=new TabPage("Clientler");var settings=new TabPage("Ayarlar");var activity=new TabPage("Loglar");
-        tabs.TabPages.AddRange(new TabPage[]{dashboard,settings,activity});
-        for(int nav=0;nav<3;nav++){int page=nav;MakeButton(new string[]{"Clientler","Ayarlar","Loglar"}[nav],this,22+nav*155,99,145,delegate{tabs.SelectedIndex=page;});}
+        tabs.SetBounds(22,145,956,613);tabs.Font=Font;Controls.Add(tabs);
+        var dashboard=new Panel{Dock=DockStyle.Fill};var settings=new Panel{Dock=DockStyle.Fill};var activity=new Panel{Dock=DockStyle.Fill};
+        pages=new Panel[]{dashboard,settings,activity};tabs.Controls.AddRange(pages);
+        for(int nav=0;nav<3;nav++){int page=nav;navigation[nav]=MakeButton(new string[]{"Clientler","Ayarlar","Loglar"}[nav],this,22+nav*155,99,145,delegate{ShowPage(page);});}
         load=MakeButton("Liste yükle",dashboard,18,18,130,LoadList);
         add=MakeButton("Proxy ekle",dashboard,158,18,130,AddProxy);
         second.Text="2. client etkin";second.SetBounds(730,23,185,30);second.Checked=preferences.SecondEnabled;dashboard.Controls.Add(second);
-        second.CheckedChanged+=delegate{slots[1].Card.Enabled=second.Checked;Persist();};
+        second.CheckedChanged+=delegate{SetSecondState();Persist();};
         for(int i=0;i<2;i++)BuildSlot(dashboard,i);
-        slots[1].Card.Enabled=second.Checked;
+        SetSecondState();
         connect=MakeButton("Proxyleri bağla",dashboard,18,496,210,Connect);
         stop=MakeButton("Durdur",dashboard,240,496,120,Stop);stop.Enabled=false;
         status.SetBounds(18,551,904,42);status.Text="Hazır • Client ve proxy seçerek başlayın.";dashboard.Controls.Add(status);
@@ -93,7 +93,7 @@ class MainForm : Form {
             slots[i].Client.Text=String.Join(" ; ",slots[i].Files);slots[i].IP.Text=saved.IP??"";
             foreach(ServerProfile profile in preferences.Servers)if(profile.IP==slots[i].IP.Text){slots[i].Server.SelectedItem=profile;break;}
         }
-        initializing=false;ApplyTheme();Resize+=delegate{RoundWindow();};RoundWindow();
+        initializing=false;PrepareFields(this);ShowPage(0);ApplyTheme();Resize+=delegate{RoundWindow();};RoundWindow();
         FormClosing+=OnClosing;
         if(!preview) {
             try{localLogPath=Diagnostics.CreateSession();Log("Yerel log kaydı başladı.");}catch(Exception ex){logs.AppendText("Log klasörü oluşturulamadı: "+ex.Message+Environment.NewLine);}
@@ -121,8 +121,11 @@ class MainForm : Form {
     [System.Runtime.InteropServices.DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr handle,int msg,int wparam,int lparam);
     void DragWindow(object sender,MouseEventArgs e){if(e.Button==MouseButtons.Left){ReleaseCapture();SendMessage(Handle,0xA1,2,0);}}
     void RoundWindow(){using(var shape=RoundedPanel.Shape(ClientRectangle,20)){var old=Region;Region=new Region(shape);if(old!=null)old.Dispose();}}
-    void ApplyTheme(){if(theme.SelectedIndex<0)return;bool light=theme.SelectedIndex==1;Color background=light?Color.FromArgb(239,241,247):Color.FromArgb(15,18,27);Color card=light?Color.White:Color.FromArgb(25,30,43);Color field=light?Color.FromArgb(231,235,244):Color.FromArgb(35,42,59);Color foreground=light?Color.FromArgb(30,36,50):Color.FromArgb(229,235,247);Color tint=accent.SelectedIndex==1?Color.FromArgb(50,120,223):accent.SelectedIndex==2?Color.FromArgb(30,148,111):Color.FromArgb(115,81,217);ThemeControl(this,background,card,field,foreground,tint);Invalidate(true);}
+    void ApplyTheme(){if(theme.SelectedIndex<0)return;bool light=theme.SelectedIndex==1;Color background=light?Color.FromArgb(239,241,247):Color.FromArgb(15,18,27);Color card=light?Color.White:Color.FromArgb(25,30,43);Color field=light?Color.FromArgb(231,235,244):Color.FromArgb(35,42,59);Color foreground=light?Color.FromArgb(30,36,50):Color.FromArgb(229,235,247);Color tint=accent.SelectedIndex==1?Color.FromArgb(50,120,223):accent.SelectedIndex==2?Color.FromArgb(30,148,111):Color.FromArgb(115,81,217);ThemeControl(this,background,card,field,foreground,tint);for(int i=0;i<navigation.Length;i++)navigation[i].BackColor=i==selectedPage?tint:field;Invalidate(true);}
     void ThemeControl(Control root,Color background,Color card,Color field,Color foreground,Color tint){root.ForeColor=foreground;root.BackColor=root is RoundedPanel?card:root is Button?tint:root is TextBox||root is ComboBox?field:background;var panel=root as RoundedPanel;if(panel!=null){panel.Surface=card;panel.Border=field;}foreach(Control child in root.Controls)ThemeControl(child,root is RoundedPanel?card:background,card,field,foreground,tint);}
+    void ShowPage(int index){selectedPage=index;for(int i=0;i<pages.Length;i++)pages[i].Visible=i==index;ApplyTheme();}
+    void SetSecondState(){var s=slots[1];bool enabled=second.Checked;s.Select.Enabled=s.Proxy.Enabled=s.Server.Enabled=s.IP.Enabled=s.Save.Enabled=enabled;s.Launch.Enabled=enabled&&ready;}
+    void PrepareFields(Control root){foreach(Control child in root.Controls){var input=child as TextBox;if(input!=null)input.BorderStyle=BorderStyle.None;var combo=child as ComboBox;if(combo!=null){combo.FlatStyle=FlatStyle.Flat;combo.DrawMode=DrawMode.OwnerDrawFixed;combo.ItemHeight=23;combo.DrawItem+=delegate(object sender,DrawItemEventArgs e){var box=(ComboBox)sender;using(var brush=new SolidBrush(box.BackColor))e.Graphics.FillRectangle(brush,e.Bounds);string text=e.Index>=0?box.Items[e.Index].ToString():box.Text;TextRenderer.DrawText(e.Graphics,text,box.Font,e.Bounds,box.ForeColor,TextFormatFlags.Left|TextFormatFlags.VerticalCenter);if((e.State&DrawItemState.Selected)!=0)e.DrawFocusRectangle();};}PrepareFields(child);}}
     void RefreshServers(){for(int i=0;i<2;i++){string ip=slots[i].IP.Text;slots[i].Server.Items.Clear();slots[i].Server.Items.Add("Kayıtlı sunucu seç");foreach(var profile in preferences.Servers)slots[i].Server.Items.Add(profile);slots[i].Server.SelectedIndex=0;slots[i].IP.Text=ip;}}
     void SaveServer(int index){try{var s=slots[index];string cidr=RoutingConfig.ValidateFallback(s.IP.Text);if(cidr==null)throw new Exception("Önce sunucu IP'sini girin.");using(var dialog=new Form{Text="Sunucuyu kaydet",ClientSize=new Size(420,130),StartPosition=FormStartPosition.CenterParent,FormBorderStyle=FormBorderStyle.FixedDialog,MaximizeBox=false,MinimizeBox=false}){AddLabel(dialog,"Sunucu adı (ör. Sezar2)",15,12,10,false);var name=new TextBox{Left=15,Top=42,Width=390,MaxLength=80};dialog.Controls.Add(name);var selected=s.Server.SelectedItem as ServerProfile;if(selected!=null)name.Text=selected.Name;var ok=MakeButton("Kaydet",dialog,275,84,130,delegate{});ok.DialogResult=DialogResult.OK;dialog.AcceptButton=ok;if(dialog.ShowDialog(this)!=DialogResult.OK)return;if(String.IsNullOrWhiteSpace(name.Text))throw new Exception("Sunucu adı yazın.");preferences.PutServer(name.Text.Trim(),cidr.Substring(0,cidr.Length-3));RefreshServers();s.Server.SelectedItem=preferences.Servers.Find(delegate(ServerProfile item){return item.Name.Equals(name.Text.Trim(),StringComparison.OrdinalIgnoreCase);});Persist();Log("Sunucu kaydedildi: "+name.Text.Trim());}}catch(Exception ex){Error(ex);}}
     void Persist(){if(initializing)return;try{preferences.Light=theme.SelectedIndex==1;preferences.Accent=accent.SelectedIndex;preferences.SecondEnabled=second.Checked;for(int i=0;i<2;i++)preferences.Slots[i]=new SlotPreference{Launcher=slots[i].Launcher,Files=slots[i].Files,IP=slots[i].IP.Text};preferences.Save();}catch(Exception ex){Log("Ayarlar kaydedilemedi: "+ex.Message);}}
@@ -190,7 +193,7 @@ class MainForm : Form {
     void SetBusy(bool busy) {
         load.Enabled=add.Enabled=connect.Enabled=second.Enabled=!busy;
         for(int i=0;i<2;i++){slots[i].Select.Enabled=slots[i].Proxy.Enabled=slots[i].Server.Enabled=slots[i].IP.Enabled=slots[i].Save.Enabled=!busy;slots[i].Launch.Enabled=busy&&ready&&(i==0||second.Checked);}
-        update.Enabled=!busy&&!updateBusy;stop.Enabled=busy&&!starting;
+        update.Enabled=!busy&&!updateBusy;stop.Enabled=busy&&!starting;if(!busy)SetSecondState();
     }
     string Config() {
         var adapter=NetworkRoutes.Select();Log("Fiziksel ağ arayüzü: "+adapter.alias+"; geçit: "+adapter.gateway);

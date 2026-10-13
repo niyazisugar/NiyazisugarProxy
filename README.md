@@ -31,3 +31,12 @@ Routing and default-interface selection are adapted from [buraakoztoprak/sockspr
 ## Local diagnostic logs (v1.1.4)
 
 Diagnostic network submission and its connection settings were removed at the user's request. The app creates `NiyazisugarProxy-Loglar` under the Windows-reported Desktop directory and writes a unique UTF-8 TXT per app session. It appends sanitized logs as events arrive, including after the on-screen log buffer is cleared. After 10 MiB it starts a new session file. The **Log klasörünü aç** button opens the actual folder, including redirected Desktop locations. Proxy credentials, known token formats and the user-profile path are redacted; network addresses remain for diagnosis. The user shares TXT files manually. GitHub application update checks remain enabled. File-write failures are shown instead of claiming a file was saved. This feature works offline.
+
+
+## v1.2.0 — appearance, saved servers and two clients
+
+The Clientler, Ayarlar and Loglar pages share a rounded desktop interface. Choose dark/light appearance and purple/blue/green accent in Ayarlar. A server name and validated IPv4 can be saved using IP'yi kaydet, and selected for either client. Preferences and selected client paths are saved locally in `%LOCALAPPDATA%\NiyazisugarProxy\preferences.json`; this file contains no proxy credentials.
+
+Enable 2. client etkin to select a second proxy and launcher/EXE/BIN set. Use separate game folders. One sing-box TUN engine owns both SOCKS outbounds, so two independently competing TUN engines are not started. Process routes precede IP fallbacks. When an IP is configured, matched clients only proxy that destination; other destinations from that known process use direct routing.
+
+For two clients targeting the same server IP, process paths are required to distinguish their proxy assignments. Unknown TCP connections to that shared IP are rejected instead of silently sending both clients through the first proxy. Protected processes that cannot be resolved may therefore fail to connect in this mode; assigning two proxies by server IP alone cannot distinguish them. Separate folders identify the paths, but cannot force anti-cheat-protected process lookup to succeed. Two-client live game operation still requires testing on the user's PCs.

@@ -43,7 +43,7 @@ class MainForm : Form {
     CheckBox second=new CheckBox(); ComboBox theme=new ComboBox(),accent=new ComboBox();
     Panel tabs=new Panel(); Panel header;Panel[] pages;Button[] navigation=new Button[3];int selectedPage; AppPreferences preferences;
     UpdateRelease availableUpdate; bool updateBusy; string localLogPath;
-    readonly EngineLogBuffer engineLogs=new EngineLogBuffer();System.Windows.Forms.Timer logTimer;
+    readonly EngineLogBuffer engineLogs=new EngineLogBuffer();System.Windows.Forms.Timer logTimer;DateTime nextPerformance=DateTime.UtcNow.AddMinutes(1);
     SlotRelay[] relays;LiveRouting liveRoutes;
     Process engine; string configFile; bool starting,closing,ready,initializing=true,previewMode,proxyLoading;
     readonly JavaScriptSerializer json=new JavaScriptSerializer();
@@ -99,7 +99,7 @@ class MainForm : Form {
         initializing=false;PrepareFields(this);ShowPage(0);ApplyTheme();Resize+=delegate{if(!initializing&&WindowState!=FormWindowState.Minimized){LayoutWindow();RoundWindow();}};ResizeEnd+=delegate{Persist();};LayoutWindow();RoundWindow();SetBusy(false);
         FormClosing+=OnClosing;
         if(!preview) {
-            logTimer=new System.Windows.Forms.Timer{Interval=250};logTimer.Tick+=delegate{DrainEngineLogs();};logTimer.Start();
+            logTimer=new System.Windows.Forms.Timer{Interval=250};logTimer.Tick+=delegate{DrainEngineLogs();if(DateTime.UtcNow>=nextPerformance){nextPerformance=DateTime.UtcNow.AddMinutes(1);RecordPerformance();}};logTimer.Start();
             try{localLogPath=Diagnostics.CreateSession();Log("Yerel log kaydı başladı.");}catch(Exception ex){logs.AppendText("Log klasörü oluşturulamadı: "+ex.Message+Environment.NewLine);}
             Shown+=delegate{CheckUpdates(null,EventArgs.Empty);};
         }
@@ -167,6 +167,8 @@ class MainForm : Form {
     void SaveServer(int index){try{var s=slots[index];string cidr=RoutingConfig.ValidateFallback(s.IP.Text);if(cidr==null)throw new Exception("Önce sunucu IP'sini girin.");using(var dialog=new Form{Text="Sunucuyu kaydet",ClientSize=new Size(420,130),StartPosition=FormStartPosition.CenterParent,FormBorderStyle=FormBorderStyle.FixedDialog,MaximizeBox=false,MinimizeBox=false}){AddLabel(dialog,"Sunucu adı (ör. Sezar2)",15,12,10,false);var name=new TextBox{Left=15,Top=42,Width=390,MaxLength=80};dialog.Controls.Add(name);var selected=s.Server.SelectedItem as ServerProfile;if(selected!=null)name.Text=selected.Name;var ok=MakeButton("Kaydet",dialog,275,84,130,delegate{});ok.DialogResult=DialogResult.OK;dialog.AcceptButton=ok;if(dialog.ShowDialog(this)!=DialogResult.OK)return;if(String.IsNullOrWhiteSpace(name.Text))throw new Exception("Sunucu adı yazın.");preferences.PutServer(name.Text.Trim(),cidr.Substring(0,cidr.Length-3));RefreshServers();s.Server.SelectedItem=preferences.Servers.Find(delegate(ServerProfile item){return item.Name.Equals(name.Text.Trim(),StringComparison.OrdinalIgnoreCase);});Persist();Log("Sunucu kaydedildi: "+name.Text.Trim());}}catch(Exception ex){Error(ex);}}
     void Persist(){if(initializing||previewMode)return;try{preferences.Light=theme.SelectedIndex==1;preferences.Accent=accent.SelectedIndex;preferences.SecondEnabled=second.Checked;if(WindowState==FormWindowState.Normal){preferences.WindowWidth=ClientSize.Width;preferences.WindowHeight=ClientSize.Height;}for(int i=0;i<2;i++)preferences.Slots[i]=new SlotPreference{Launcher=slots[i].Launcher,Files=slots[i].Files,IP=slots[i].IP.Text};preferences.Save();}catch(Exception ex){Log("Ayarlar kaydedilemedi: "+ex.Message);}}
     void UI(Action a) { if(IsDisposed || closing)return; try { BeginInvoke(a); } catch(InvalidOperationException){} }
+    void RecordPerformance(){try{using(var current=Process.GetCurrentProcess()){current.Refresh();Log("Performans "+DateTime.Now.ToString("O")+" | uygulama: "+Performance(current)+" | log kuyruğu: "+engineLogs.Count);}var motor=engine;if(motor!=null&&!motor.HasExited){motor.Refresh();Log("Performans motor: "+Performance(motor));}}catch(InvalidOperationException){}catch(System.ComponentModel.Win32Exception){}}
+    string Performance(Process process){return "PID="+process.Id+", CPU toplam="+process.TotalProcessorTime.TotalSeconds.ToString("F2",System.Globalization.CultureInfo.InvariantCulture)+" sn, bellek="+(process.WorkingSet64/1048576)+" MB, iş parçacığı="+process.Threads.Count;}
     void DrainEngineLogs(){string text=engineLogs.Drain();if(String.IsNullOrEmpty(text))return;text=Regex.Replace(text,"\\x1B\\[[0-?]*[ -/]*[@-~]","");Log(text);if(text.IndexOf("failed to search process",StringComparison.OrdinalIgnoreCase)>=0)status.Text="UYARI: Süreç okunamadı; oyun proxy kullanımı doğrulanmadı.";if(text.Contains("sing-box started")){ready=true;SetBusy(true);status.Text="Durum: Motor hazır — oyun bağlantısı henüz doğrulanmadı";}}
     void Log(string text) {
         if(String.IsNullOrEmpty(text))return;

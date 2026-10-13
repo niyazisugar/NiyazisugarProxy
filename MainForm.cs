@@ -249,7 +249,7 @@ class MainForm : Form {
             relays[index].SetProxy(candidate.Proxy);slots[index].Active=candidate;
             liveRoutes.Update(new ClientRoute[]{slots[0].Active,slots[1].Active});Persist();
             if(firstEngine){var adapter=NetworkRoutes.Select();configFile=Path.Combine(Path.GetTempPath(),"metinproxy-"+Guid.NewGuid().ToString("N")+".json");File.WriteAllText(configFile,json.Serialize(liveRoutes.Config(new int[]{relays[0].Port,relays[1].Port},adapter.alias)),new UTF8Encoding(false));starting=true;ready=false;SetBusy(true);status.Text="Motor başlatılıyor…";var worker=new Thread(delegate(){StartEngine(Path.Combine(baseDir,"sing-box.exe"));});worker.IsBackground=true;worker.Start();}
-            else{SetBusy(true);Log("Client "+(index+1)+" kuralları güncellendi; motor yeniden başlatılmadı. Oyunu açmadan önce kural güncelleme kaydını kontrol edin.");}
+            else{SetBusy(true);Log("Client "+(index+1)+" kuralları güncellendi; motor yeniden başlatılmadı. Yeni kuralların uygulanması birkaç saniye sürebilir.");}
         }catch(Exception ex){if(relays!=null)relays[index].Stop();slots[index].Active=null;if(engine==null){DisposeLive();CleanConfig();}else try{liveRoutes.Update(new ClientRoute[]{slots[0].Active,slots[1].Active});}catch(Exception updateError){Log("Kurallar geri yüklenemedi: "+updateError.Message);}SetBusy(starting||engine!=null);Error(ex);}
     }
     void StopSlot(int index){if(starting||slots[index].Active==null)return;try{relays[index].Stop();slots[index].Active=null;liveRoutes.Update(new ClientRoute[]{slots[0].Active,slots[1].Active});Log("Client "+(index+1)+" proxy bağlantıları durduruldu; diğer client değişmedi.");SetBusy(engine!=null);}catch(Exception ex){Error(ex);}}

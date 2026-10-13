@@ -64,3 +64,10 @@ v1.2.0
 v1.2.1: Pencereyi kenarlarından/köşelerinden sürükleyerek boyutlandırın.
 Son boyut hatırlanır. Küçük pencerede client alanları alt alta geçer;
 iki client etkinse aşağı kaydırarak ikinci client ve bağlantı düğmelerine ulaşın.
+
+v1.3.0: Her clientin kendi Bağlan / Durdur / Proxy ekle düğmesi vardır.
+İlk client bağlıyken 2. clienti etkinleştirip dosya ve proxy seçebilirsiniz.
+İkinci slotun eklenmesi motoru yeniden başlatmaz. Kurallar birkaç saniyede uygulanır.
+Aynı sunucu IP'sinde süreç okumayı engelleyen koruma, yeni/yeniden bağlantıları
+engelleyebilir. Mevcut TCP bağlantıları korunur; oyun üzerinde test gereklidir.
+Bu sürümde client köprüleri TCP destekler; UDP client trafiği desteklenmez.

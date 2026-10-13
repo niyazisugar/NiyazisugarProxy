@@ -39,6 +39,7 @@ class Tests {
                     live.Update(new ClientRoute[]{new ClientRoute{Proxy=new ProxyItem{Host="192.0.2.1",Port=1080},Patterns=new string[]{"^example-one$"},IP="203.0.113.8",Tag="game-proxy-1"},null});
                     string liveFile=Path.GetTempFileName();try{File.WriteAllText(liveFile,new JavaScriptSerializer().Serialize(live.Config(new int[]{12345,12346},adapter.alias)));using(var process=System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(args[1],"check -c "+Updates.Quote(liveFile)){UseShellExecute=false,RedirectStandardError=true,RedirectStandardOutput=true,CreateNoWindow=true})){var err=process.StandardError.ReadToEndAsync();var output=process.StandardOutput.ReadToEndAsync();if(!process.WaitForExit(15000)){process.Kill();throw new Exception("Live engine check timeout");}Console.WriteLine(err.GetAwaiter().GetResult()+output.GetAwaiter().GetResult());Assert(process.ExitCode==0);}}finally{File.Delete(liveFile);}
                 }
+                RelayTests.VerifyLiveEngine(args[1],adapter.alias);
                 Console.WriteLine("Actual sing-box config validation passed with and without fallback.");return 0;
             }
             Assert(WindowGeometry.Restore(0,0,new System.Drawing.Size(1920,1080))==new System.Drawing.Size(840,650));

@@ -44,3 +44,9 @@ For two clients targeting the same server IP, process paths are required to dist
 ## v1.2.1 — resizable window
 
 Drag any window edge or corner to resize. Default size is 840×650, minimum is 640×520. The last normal window size is saved locally and clamped to the current monitor work area on startup. Client cards use a stacked layout at narrow widths, the optional second card is hidden until enabled, and smaller pages scroll to keep all controls accessible.
+
+## v1.3.0 — independent client controls
+
+Each card has Bağlan, Durdur and Proxy ekle. While client 1 is active, enable client 2, choose its files/server/proxy and connect it independently. Client 2 updates watched local sing-box rule files without restarting the TUN engine. Separate loopback TCP SOCKS bridges keep established upstream sessions on their original proxy; stopping one bridge closes only that slot's sessions. Only TCP is supported by these bridges; matching non-TCP game traffic is rejected.
+
+For shared server IPs, unknown-process TCP connections must be rejected to prevent both clients silently using the first proxy. Existing TCP sessions are preserved, but protected processes may be unable to create/recreate connections when both slots are active. A shared-IP warning explains this before activating the second slot. The app cannot make protected process lookup succeed or guarantee Metin2 auto-hunt compatibility without a live game test. Runtime rule reload is asynchronous and may take a few seconds.

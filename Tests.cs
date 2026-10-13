@@ -17,15 +17,15 @@ class Tests {
                 var adapter=NetworkRoutes.Select();
                 foreach(string fallback in new string[]{"","185.128.114.39"}) {
                     var config=RoutingConfig.Build(new ProxyItem{Host="192.0.2.1",Port=1080,User="test",Password="example"},adapter.alias,new string[]{"(?i)^C:\\\\Games\\\\metin2client\\.bin$"},fallback);
-                    string file=Path.GetTempFileName();
+                    string checkFile=Path.GetTempFileName();
                     try {
-                        File.WriteAllText(file,new JavaScriptSerializer().Serialize(config));
-                        using(var process=System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(args[1],"check -c "+Updates.Quote(file)){UseShellExecute=false,RedirectStandardError=true,RedirectStandardOutput=true,CreateNoWindow=true})) {
+                        File.WriteAllText(checkFile,new JavaScriptSerializer().Serialize(config));
+                        using(var process=System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(args[1],"check -c "+Updates.Quote(checkFile)){UseShellExecute=false,RedirectStandardError=true,RedirectStandardOutput=true,CreateNoWindow=true})) {
                             var err=process.StandardError.ReadToEndAsync();var output=process.StandardOutput.ReadToEndAsync();
                             if(!process.WaitForExit(15000)){process.Kill();throw new Exception("Engine check timeout");}
                             Console.WriteLine(err.GetAwaiter().GetResult()+output.GetAwaiter().GetResult());Assert(process.ExitCode==0);
                         }
-                    }finally {File.Delete(file);}
+                    }finally {File.Delete(checkFile);}
                 }
                 Console.WriteLine("Actual sing-box config validation passed with and without fallback.");return 0;
             }

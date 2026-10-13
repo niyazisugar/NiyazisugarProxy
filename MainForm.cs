@@ -55,6 +55,8 @@ class MainForm : Form {
         logs.BackColor=Color.FromArgb(23,15,37); logs.ForeColor=ForeColor; logs.Font=new Font("Consolas",9); logs.Anchor=AnchorStyles.Top|AnchorStyles.Bottom|AnchorStyles.Left|AnchorStyles.Right; Controls.Add(logs);
         sendReport=Btn("Tanılama gönder",22,574,200,SendDiagnostics);
         sendReport.Anchor=AnchorStyles.Bottom|AnchorStyles.Left;
+        var diagnosticOptions=Btn("Tanılama ayarları",232,574,200,delegate(object sender,EventArgs e){try{SetupDiagnostics();}catch(Exception ex){Error(ex);}});
+        diagnosticOptions.Anchor=AnchorStyles.Bottom|AnchorStyles.Left;
         FormClosing+=OnClosing;
     }
     Button Btn(string text,int x,int y,int width,EventHandler action) {
@@ -211,7 +213,7 @@ class MainForm : Form {
                 try {
                     int number=Diagnostics.Send(settings,report);
                     UI(delegate {sendReport.Enabled=true;sendReport.Text="Tanılama gönder";MessageBox.Show(this,"Gönderildi. Kayıt numarası: "+number+"\nSohbette bu numarayı yazabilirsin.","NiyazisugarProxy");});
-                }catch(Exception){UI(delegate {sendReport.Enabled=true;sendReport.Text="Tanılama gönder";MessageBox.Show(this,"Gönderilemedi. Servis bağlantısını kontrol edin; kayıt numarası oluşturulmadı.");});}
+                }catch(Exception ex){string detail=ex.Message.Replace(settings.Key,"[HIDDEN]");UI(delegate {sendReport.Enabled=true;sendReport.Text="Tanılama gönder";MessageBox.Show(this,detail,"Tanılama gönderimi");});}
             });worker.IsBackground=true;worker.Start();
         }catch(Exception ex){Error(ex);}
     }

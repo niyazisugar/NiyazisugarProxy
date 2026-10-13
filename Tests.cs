@@ -35,6 +35,11 @@ class Tests {
                     var dual=RoutingConfig.BuildMany(new ClientRoute[]{new ClientRoute{Proxy=new ProxyItem{Host="192.0.2.1",Port=1080},Patterns=new string[]{"(?i)^C:\\\\Games1\\\\client.exe$"},IP="203.0.113.8",Tag="game-proxy-1"},new ClientRoute{Proxy=new ProxyItem{Host="192.0.2.2",Port=1081},Patterns=new string[]{"(?i)^C:\\\\Games2\\\\client.exe$"},IP=shared?"203.0.113.8":"203.0.113.9",Tag="game-proxy-2"}},adapter.alias);
                     string dualFile=Path.GetTempFileName();try{File.WriteAllText(dualFile,new JavaScriptSerializer().Serialize(dual));using(var process=System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(args[1],"check -c "+Updates.Quote(dualFile)){UseShellExecute=false,RedirectStandardError=true,RedirectStandardOutput=true,CreateNoWindow=true})){var err=process.StandardError.ReadToEndAsync();var output=process.StandardOutput.ReadToEndAsync();if(!process.WaitForExit(15000)){process.Kill();throw new Exception("Dual engine check timeout");}Console.WriteLine(err.GetAwaiter().GetResult()+output.GetAwaiter().GetResult());Assert(process.ExitCode==0);}}finally{File.Delete(dualFile);}
                 }
+                using(var live=new LiveRouting()){
+                    live.Update(new ClientRoute[]{new ClientRoute{Proxy=new ProxyItem{Host="192.0.2.1",Port=1080},Patterns=new string[]{"^example-one$"},IP="203.0.113.8",Tag="game-proxy-1"},null});
+                    string liveFile=Path.GetTempFileName();try{File.WriteAllText(liveFile,new JavaScriptSerializer().Serialize(live.Config(new int[]{12345,12346},adapter.alias)));using(var process=System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(args[1],"check -c "+Updates.Quote(liveFile)){UseShellExecute=false,RedirectStandardError=true,RedirectStandardOutput=true,CreateNoWindow=true})){var err=process.StandardError.ReadToEndAsync();var output=process.StandardOutput.ReadToEndAsync();if(!process.WaitForExit(15000)){process.Kill();throw new Exception("Live engine check timeout");}Console.WriteLine(err.GetAwaiter().GetResult()+output.GetAwaiter().GetResult());Assert(process.ExitCode==0);}}finally{File.Delete(liveFile);}
+                }
+                RelayTests.VerifyLiveEngine(args[1],adapter.alias);
                 Console.WriteLine("Actual sing-box config validation passed with and without fallback.");return 0;
             }
             Assert(WindowGeometry.Restore(0,0,new System.Drawing.Size(1920,1080))==new System.Drawing.Size(840,650));
@@ -43,6 +48,7 @@ class Tests {
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(2,2),new System.Drawing.Size(840,650),10)==13);
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(839,649),new System.Drawing.Size(840,650),10)==17);
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(200,300),new System.Drawing.Size(840,650),10)==1);
+            RelayTests.Run();
             string prefDir=Path.Combine(Path.GetTempPath(),"PreferencesTest-"+Guid.NewGuid().ToString("N"));
             try {
                 var pref=new AppPreferences();pref.PutServer("Test server","203.0.113.5");pref.PutServer("TEST SERVER","203.0.113.6");

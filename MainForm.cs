@@ -28,7 +28,7 @@ class MainForm : Form {
     class ClientSlot {
         public ComboBox Proxy=new ComboBox(), Server=new ComboBox();
         public TextBox Client=new TextBox(), IP=new TextBox();
-        public Button Select, Launch, Save;
+        public Button Select, Launch, Save, Connect, Stop, Add;public ClientRoute Active;
         public string Launcher; public string[] Files=new string[0];
         public Panel Card;
     }
@@ -43,6 +43,7 @@ class MainForm : Form {
     CheckBox second=new CheckBox(); ComboBox theme=new ComboBox(),accent=new ComboBox();
     Panel tabs=new Panel(); Panel header;Panel[] pages;Button[] navigation=new Button[3];int selectedPage; AppPreferences preferences;
     UpdateRelease availableUpdate; bool updateBusy; string localLogPath;
+    SlotRelay[] relays;LiveRouting liveRoutes;
     Process engine; string configFile; bool starting,closing,ready,initializing=true,previewMode;
     readonly JavaScriptSerializer json=new JavaScriptSerializer();
     readonly string baseDir=AppDomain.CurrentDomain.BaseDirectory;
@@ -65,11 +66,11 @@ class MainForm : Form {
         load=MakeButton("Liste yükle",dashboard,18,18,130,LoadList);
         add=MakeButton("Proxy ekle",dashboard,158,18,130,AddProxy);
         second.Text="2. client etkin";second.SetBounds(730,23,185,30);second.Checked=preferences.SecondEnabled;dashboard.Controls.Add(second);
-        second.CheckedChanged+=delegate{SetSecondState();LayoutWindow();Persist();};
+        second.CheckedChanged+=delegate{if(!second.Checked&&slots[1].Active!=null){second.Checked=true;return;}SetSecondState();LayoutWindow();Persist();};
         for(int i=0;i<2;i++)BuildSlot(dashboard,i);
         SetSecondState();
-        connect=MakeButton("Proxyleri bağla",dashboard,18,496,210,Connect);
-        stop=MakeButton("Durdur",dashboard,240,496,120,Stop);stop.Enabled=false;
+        connect=MakeButton("1. clienti bağla",dashboard,18,496,210,Connect);
+        stop=MakeButton("Tümünü durdur",dashboard,240,496,170,Stop);stop.Enabled=false;
         status.SetBounds(18,551,904,42);status.Text="Hazır • Client ve proxy seçerek başlayın.";dashboard.Controls.Add(status);
         var appearance=new RoundedPanel();appearance.SetBounds(18,18,904,228);settings.Controls.Add(appearance);
         AddLabel(appearance,"Görünüm",20,15,16,true);
@@ -93,7 +94,7 @@ class MainForm : Form {
             slots[i].Client.Text=String.Join(" ; ",slots[i].Files);slots[i].IP.Text=saved.IP??"";
             foreach(ServerProfile profile in preferences.Servers)if(profile.IP==slots[i].IP.Text){slots[i].Server.SelectedItem=profile;break;}
         }
-        initializing=false;PrepareFields(this);ShowPage(0);ApplyTheme();Resize+=delegate{if(!initializing&&WindowState!=FormWindowState.Minimized){LayoutWindow();RoundWindow();}};ResizeEnd+=delegate{Persist();};LayoutWindow();RoundWindow();
+        initializing=false;PrepareFields(this);ShowPage(0);ApplyTheme();Resize+=delegate{if(!initializing&&WindowState!=FormWindowState.Minimized){LayoutWindow();RoundWindow();}};ResizeEnd+=delegate{Persist();};LayoutWindow();RoundWindow();SetBusy(false);
         FormClosing+=OnClosing;
         if(!preview) {
             try{localLogPath=Diagnostics.CreateSession();Log("Yerel log kaydı başladı.");}catch(Exception ex){logs.AppendText("Log klasörü oluşturulamadı: "+ex.Message+Environment.NewLine);}
@@ -104,6 +105,9 @@ class MainForm : Form {
         var s=slots[index];s.Card=new RoundedPanel();s.Card.SetBounds(18,74+index*205,904,190);parent.Controls.Add(s.Card);
         AddLabel(s.Card,"CLIENT "+(index+1),18,13,14,true);
         s.Launch=MakeButton("Oyunu aç",s.Card,746,10,140,delegate(object a,EventArgs b){LaunchSlot(index);});s.Launch.Enabled=false;
+        s.Connect=MakeButton("Bağlan",s.Card,18,228,128,delegate{ActivateSlot(index);});
+        s.Stop=MakeButton("Durdur",s.Card,156,228,116,delegate{StopSlot(index);});s.Stop.Enabled=false;
+        s.Add=MakeButton("Proxy ekle",s.Card,282,228,150,delegate{AddSlotProxy(index);});
         AddLabel(s.Card,"Proxy",18,56,9,false);s.Proxy.SetBounds(88,52,322,30);s.Proxy.DropDownStyle=ComboBoxStyle.DropDownList;s.Card.Controls.Add(s.Proxy);
         AddLabel(s.Card,"Sunucu",436,56,9,false);s.Server.SetBounds(510,52,376,30);s.Server.DropDownStyle=ComboBoxStyle.DropDownList;s.Card.Controls.Add(s.Server);
         s.Server.SelectedIndexChanged+=delegate{var profile=s.Server.SelectedItem as ServerProfile;if(profile!=null){s.IP.Text=profile.IP;Persist();}};
@@ -130,12 +134,12 @@ class MainForm : Form {
             minimize.Left=ClientSize.Width-110;close.Left=ClientSize.Width-64;
             tabs.SetBounds(22,145,Math.Max(1,ClientSize.Width-44),Math.Max(1,ClientSize.Height-167));
             var dashboard=pages[0];dashboard.AutoScrollPosition=Point.Empty;
-            int width=Math.Max(520,tabs.ClientSize.Width-56);bool compact=width<820;int cardHeight=compact?245:190;
+            int width=Math.Max(520,tabs.ClientSize.Width-56);bool compact=width<820;int cardHeight=compact?296:245;
             second.Left=Math.Max(306,width-175);
             for(int i=0;i<2;i++){
                 var slot=slots[i];slot.Card.Visible=i==0||second.Checked;
                 slot.Card.SetBounds(18,74+i*(cardHeight+16),width,cardHeight);
-                slot.Launch.SetBounds(width-158,10,140,36);
+                slot.Launch.SetBounds(width-158,10,140,36);int controlsTop=compact?250:190;slot.Connect.SetBounds(18,controlsTop,128,36);slot.Stop.SetBounds(156,controlsTop,116,36);slot.Add.SetBounds(282,controlsTop,150,36);
                 if(compact){slot.Proxy.SetBounds(88,52,width-106,30);slot.Server.SetBounds(88,92,width-106,30);slot.Client.SetBounds(18,138,width-176,28);slot.Select.SetBounds(width-158,134,140,36);slot.IP.SetBounds(110,188,width-312,28);slot.Save.SetBounds(width-184,182,166,36);}
                 else{slot.Proxy.SetBounds(88,52,(width-260)/2,30);slot.Server.SetBounds((width/2)+58,52,(width/2)-76,30);slot.Client.SetBounds(18,98,width-176,28);slot.Select.SetBounds(width-158,94,140,36);slot.IP.SetBounds(110,143,250,28);slot.Save.SetBounds(374,138,170,36);}
                 foreach(Control label in slot.Card.Controls)if(label is Label){if(label.Text=="Sunucu")label.Location=compact?new Point(18,96):new Point(width/2-16,56);if(label.Text=="Sunucu IP")label.Top=compact?194:149;if(label.Text=="EXE + BIN seçimi desteklenir"){label.Location=compact?new Point(18,225):new Point(567,149);label.Visible=compact||width>=840;}}
@@ -154,7 +158,7 @@ class MainForm : Form {
     void ApplyTheme(){if(theme.SelectedIndex<0)return;bool light=theme.SelectedIndex==1;Color background=light?Color.FromArgb(239,241,247):Color.FromArgb(15,18,27);Color card=light?Color.White:Color.FromArgb(25,30,43);Color field=light?Color.FromArgb(231,235,244):Color.FromArgb(35,42,59);Color foreground=light?Color.FromArgb(30,36,50):Color.FromArgb(229,235,247);Color tint=accent.SelectedIndex==1?Color.FromArgb(50,120,223):accent.SelectedIndex==2?Color.FromArgb(30,148,111):Color.FromArgb(115,81,217);ThemeControl(this,background,card,field,foreground,tint);for(int i=0;i<navigation.Length;i++){navigation[i].BackColor=i==selectedPage?tint:field;navigation[i].ForeColor=i==selectedPage?Color.White:foreground;}Invalidate(true);}
     void ThemeControl(Control root,Color background,Color card,Color field,Color foreground,Color tint){root.ForeColor=root is Button?Color.White:foreground;root.BackColor=root is RoundedPanel?card:root is Button?tint:root is TextBox||root is ComboBox?field:background;var panel=root as RoundedPanel;if(panel!=null){panel.Surface=card;panel.Border=field;}foreach(Control child in root.Controls)ThemeControl(child,root is RoundedPanel?card:background,card,field,foreground,tint);}
     void ShowPage(int index){selectedPage=index;for(int i=0;i<pages.Length;i++)pages[i].Visible=i==index;ApplyTheme();}
-    void SetSecondState(){var s=slots[1];bool enabled=second.Checked;s.Select.Enabled=s.Proxy.Enabled=s.Server.Enabled=s.IP.Enabled=s.Save.Enabled=enabled;s.Launch.Enabled=enabled&&ready;}
+    void SetSecondState(){if(connect==null||slots[1].Connect==null)return;SetBusy(starting||engine!=null);}
     void PrepareFields(Control root){foreach(Control child in root.Controls){var input=child as TextBox;if(input!=null)input.BorderStyle=BorderStyle.None;var combo=child as ComboBox;if(combo!=null){combo.FlatStyle=FlatStyle.Flat;combo.DrawMode=DrawMode.OwnerDrawFixed;combo.ItemHeight=23;combo.DrawItem+=delegate(object sender,DrawItemEventArgs e){var box=(ComboBox)sender;using(var brush=new SolidBrush(box.BackColor))e.Graphics.FillRectangle(brush,e.Bounds);string text=e.Index>=0?box.Items[e.Index].ToString():box.Text;TextRenderer.DrawText(e.Graphics,text,box.Font,e.Bounds,box.ForeColor,TextFormatFlags.Left|TextFormatFlags.VerticalCenter);if((e.State&DrawItemState.Selected)!=0)e.DrawFocusRectangle();};}PrepareFields(child);}}
     void RefreshServers(){for(int i=0;i<2;i++){string ip=slots[i].IP.Text;slots[i].Server.Items.Clear();slots[i].Server.Items.Add("Kayıtlı sunucu seç");foreach(var profile in preferences.Servers)slots[i].Server.Items.Add(profile);slots[i].Server.SelectedIndex=0;slots[i].IP.Text=ip;}}
     void SaveServer(int index){try{var s=slots[index];string cidr=RoutingConfig.ValidateFallback(s.IP.Text);if(cidr==null)throw new Exception("Önce sunucu IP'sini girin.");using(var dialog=new Form{Text="Sunucuyu kaydet",ClientSize=new Size(420,130),StartPosition=FormStartPosition.CenterParent,FormBorderStyle=FormBorderStyle.FixedDialog,MaximizeBox=false,MinimizeBox=false}){AddLabel(dialog,"Sunucu adı (ör. Sezar2)",15,12,10,false);var name=new TextBox{Left=15,Top=42,Width=390,MaxLength=80};dialog.Controls.Add(name);var selected=s.Server.SelectedItem as ServerProfile;if(selected!=null)name.Text=selected.Name;var ok=MakeButton("Kaydet",dialog,275,84,130,delegate{});ok.DialogResult=DialogResult.OK;dialog.AcceptButton=ok;if(dialog.ShowDialog(this)!=DialogResult.OK)return;if(String.IsNullOrWhiteSpace(name.Text))throw new Exception("Sunucu adı yazın.");preferences.PutServer(name.Text.Trim(),cidr.Substring(0,cidr.Length-3));RefreshServers();s.Server.SelectedItem=preferences.Servers.Find(delegate(ServerProfile item){return item.Name.Equals(name.Text.Trim(),StringComparison.OrdinalIgnoreCase);});Persist();Log("Sunucu kaydedildi: "+name.Text.Trim());}}catch(Exception ex){Error(ex);}}
@@ -196,7 +200,7 @@ class MainForm : Form {
             var input=new TextBox {Location=new Point(12,40),Width=450,UseSystemPasswordChar=true};
             var ok=new Button {Text="Ekle",Location=new Point(362,78),DialogResult=DialogResult.OK};
             d.Controls.Add(label);d.Controls.Add(input);d.Controls.Add(ok);d.AcceptButton=ok;
-            if(d.ShowDialog(this)==DialogResult.OK)try {var item=ProxyItem.Parse(input.Text);for(int i=0;i<slots.Length;i++){slots[i].Proxy.Items.Add(item);if(i==0||slots[i].Proxy.SelectedIndex<0)slots[i].Proxy.SelectedIndex=slots[i].Proxy.Items.Count-1;}}catch(Exception ex){Error(ex);}
+            if(d.ShowDialog(this)==DialogResult.OK)try {var item=ProxyItem.Parse(input.Text);for(int i=0;i<slots.Length;i++){slots[i].Proxy.Items.Add(item);if(slots[i].Active==null&&(i==0||slots[i].Proxy.SelectedIndex<0))slots[i].Proxy.SelectedIndex=slots[i].Proxy.Items.Count-1;}}catch(Exception ex){Error(ex);}
         }
     }
     void SelectSlot(int index) {
@@ -221,36 +225,35 @@ class MainForm : Form {
     }
     IEnumerable<ProxyItem> AllProxies(){foreach(var slot in slots)foreach(ProxyItem item in slot.Proxy.Items)yield return item;}
     void SetBusy(bool busy) {
-        load.Enabled=add.Enabled=connect.Enabled=second.Enabled=!busy;
-        for(int i=0;i<2;i++){slots[i].Select.Enabled=slots[i].Proxy.Enabled=slots[i].Server.Enabled=slots[i].IP.Enabled=slots[i].Save.Enabled=!busy;slots[i].Launch.Enabled=busy&&ready&&(i==0||second.Checked);}
-        update.Enabled=!busy&&!updateBusy;stop.Enabled=busy&&!starting;if(!busy)SetSecondState();
+        load.Enabled=!starting&&slots[0].Active==null&&slots[1].Active==null;add.Enabled=!starting;second.Enabled=!starting;
+        connect.Enabled=!starting&&!updateBusy&&slots[0].Active==null;
+        for(int i=0;i<2;i++){var slot=slots[i];bool editable=!starting&&slot.Active==null&&(i==0||second.Checked);slot.Select.Enabled=slot.Proxy.Enabled=slot.Server.Enabled=slot.IP.Enabled=slot.Save.Enabled=slot.Add.Enabled=editable;slot.Connect.Enabled=editable&&!updateBusy;slot.Stop.Enabled=!starting&&slot.Active!=null;slot.Launch.Enabled=ready&&slot.Active!=null;}
+        update.Enabled=!busy&&!updateBusy;stop.Enabled=!starting&&engine!=null;
     }
-    string Config() {
-        var adapter=NetworkRoutes.Select();Log("Fiziksel ağ arayüzü: "+adapter.alias+"; geçit: "+adapter.gateway);
-        var routes=new List<ClientRoute>();
-        for(int i=0;i<(second.Checked?2:1);i++) {
-            var s=slots[i];if(s.Proxy.SelectedItem==null)throw new Exception("Client "+(i+1)+" için proxy seçin.");
-            if(s.Files.Length==0||!File.Exists(s.Launcher))throw new Exception("Client "+(i+1)+" için client ve launcher dosyalarını seçin.");
-            routes.Add(new ClientRoute{Proxy=(ProxyItem)s.Proxy.SelectedItem,Patterns=ClientFiles.Patterns(s.Files,s.Launcher),IP=s.IP.Text,Tag="game-proxy-"+(i+1)});
-        }
-        if(second.Checked&&routes[0].Proxy.Host==routes[1].Proxy.Host&&routes[0].Proxy.Port==routes[1].Proxy.Port)throw new Exception("İkinci client için farklı bir proxy adresi seçin.");
-        if(second.Checked&&String.Equals(Path.GetDirectoryName(slots[0].Launcher),Path.GetDirectoryName(slots[1].Launcher),StringComparison.OrdinalIgnoreCase))throw new Exception("İki client için iki ayrı oyun klasörü seçin. Aynı dosya yolundaki iki süreç ayrı proxyye atanamaz.");
-        if(second.Checked&&RoutingConfig.SharedIP(routes.ToArray()))Log("Aynı sunucu IP'si: ayrı proxy için süreç eşleşmesi gerekli. Süreç bulunamayan sunucu bağlantıları engellenecek.");
-        return json.Serialize(RoutingConfig.BuildMany(routes.ToArray(),adapter.alias));
-    }
-    void Connect(object sender,EventArgs e) {
-        try {
+    ClientRoute ReadSlot(int index){var slot=slots[index];var proxy=slot.Proxy.SelectedItem as ProxyItem;if(proxy==null)throw new Exception("Client "+(index+1)+" için proxy seçin.");if(slot.Files.Length==0||!File.Exists(slot.Launcher))throw new Exception("Client "+(index+1)+" için client ve launcher dosyalarını seçin.");RoutingConfig.ValidateFallback(slot.IP.Text);return new ClientRoute{Proxy=proxy,Patterns=ClientFiles.Patterns(slot.Files,slot.Launcher),IP=slot.IP.Text,Tag="game-proxy-"+(index+1)};}
+    void AddSlotProxy(int index){int count=proxies.Items.Count;int first=slots[0].Proxy.SelectedIndex,other=slots[1].Proxy.SelectedIndex;AddProxy(null,EventArgs.Empty);if(proxies.Items.Count>count){slots[index].Proxy.SelectedIndex=proxies.Items.Count-1;if(index==1)slots[0].Proxy.SelectedIndex=first;else slots[1].Proxy.SelectedIndex=other;}SetBusy(starting||engine!=null);}
+    void Connect(object sender,EventArgs e){ActivateSlot(0);}
+    void ActivateSlot(int index){
+        if(starting||slots[index].Active!=null)return;
+        try{
             if(updateBusy)throw new Exception("Güncelleme işlemini bekleyin.");
             using(WindowsIdentity id=WindowsIdentity.GetCurrent())if(!new WindowsPrincipal(id).IsInRole(WindowsBuiltInRole.Administrator))throw new Exception("Uygulamayı yönetici olarak çalıştırın.");
-            if(proxies.SelectedItem==null)throw new Exception("Proxy seçin.");
-            if(selectedFiles.Length==0||!File.Exists(launcherPath))throw new Exception("Client ve launcher dosyalarını seçin.");
-            string bin=Path.Combine(baseDir,"sing-box.exe"); 
-            configFile=Path.Combine(Path.GetTempPath(),"metinproxy-"+Guid.NewGuid().ToString("N")+".json");
-            File.WriteAllText(configFile,Config(),new UTF8Encoding(false));Persist();
-            starting=true;ready=false;SetBusy(true);status.Text="Durum: Yapılandırma kontrol ediliyor…";
-            var worker=new Thread(delegate() {StartEngine(bin);}); worker.IsBackground=true;worker.Start();
-        }catch(Exception ex){CleanConfig();Error(ex);}
+            var candidate=ReadSlot(index);var other=slots[1-index].Active;
+            if(other!=null){if(other.Proxy.Host==candidate.Proxy.Host&&other.Proxy.Port==candidate.Proxy.Port)throw new Exception("Farklı proxy adresleri seçin.");foreach(string pattern in candidate.Patterns)if(Array.IndexOf(other.Patterns,pattern)>=0)throw new Exception("Clientler için farklı oyun klasörleri seçin.");
+                if(RoutingConfig.ValidateFallback(other.IP)!=null&&RoutingConfig.ValidateFallback(other.IP)==RoutingConfig.ValidateFallback(candidate.IP)){
+                    if(MessageBox.Show(this,"Aynı sunucuya iki farklı proxy için süreç eşleşmesi gerekiyor. Koruma süreci gizlerse yeni bağlantılar engellenebilir; ilk oyun tekrar bağlanamayabilir. Devam edilsin mi?","İki client",MessageBoxButtons.OKCancel,MessageBoxIcon.Information)!=DialogResult.OK)return;
+                }
+            }
+            bool firstEngine=engine==null;
+            if(firstEngine){liveRoutes=new LiveRouting();relays=new SlotRelay[]{new SlotRelay(),new SlotRelay()};}
+            relays[index].SetProxy(candidate.Proxy);slots[index].Active=candidate;
+            liveRoutes.Update(new ClientRoute[]{slots[0].Active,slots[1].Active});Persist();
+            if(firstEngine){var adapter=NetworkRoutes.Select();configFile=Path.Combine(Path.GetTempPath(),"metinproxy-"+Guid.NewGuid().ToString("N")+".json");File.WriteAllText(configFile,json.Serialize(liveRoutes.Config(new int[]{relays[0].Port,relays[1].Port},adapter.alias)),new UTF8Encoding(false));starting=true;ready=false;SetBusy(true);status.Text="Motor başlatılıyor…";var worker=new Thread(delegate(){StartEngine(Path.Combine(baseDir,"sing-box.exe"));});worker.IsBackground=true;worker.Start();}
+            else{SetBusy(true);Log("Client "+(index+1)+" kuralları güncellendi; motor yeniden başlatılmadı. Yeni kuralların uygulanması birkaç saniye sürebilir.");}
+        }catch(Exception ex){if(relays!=null)relays[index].Stop();slots[index].Active=null;if(engine==null){DisposeLive();CleanConfig();}else try{liveRoutes.Update(new ClientRoute[]{slots[0].Active,slots[1].Active});}catch(Exception updateError){Log("Kurallar geri yüklenemedi: "+updateError.Message);}SetBusy(starting||engine!=null);Error(ex);}
     }
+    void StopSlot(int index){if(starting||slots[index].Active==null)return;try{relays[index].Stop();slots[index].Active=null;liveRoutes.Update(new ClientRoute[]{slots[0].Active,slots[1].Active});Log("Client "+(index+1)+" proxy bağlantıları durduruldu; diğer client değişmedi.");SetBusy(engine!=null);}catch(Exception ex){Error(ex);}}
+    void DisposeLive(){if(relays!=null){foreach(var relay in relays)if(relay!=null)relay.Dispose();relays=null;}if(liveRoutes!=null){liveRoutes.Dispose();liveRoutes=null;}foreach(var slot in slots)slot.Active=null;}
     ProcessStartInfo Info(string bin,string command) {
         return new ProcessStartInfo {FileName=bin,Arguments=command+" -c \""+configFile+"\"",WorkingDirectory=Path.GetDirectoryName(bin),UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,StandardOutputEncoding=Encoding.UTF8,StandardErrorEncoding=Encoding.UTF8};
     }
@@ -273,7 +276,7 @@ class MainForm : Form {
                 string line=e.Data; UI(delegate {line=Regex.Replace(line,"\\x1B\\[[0-?]*[ -/]*[@-~]","");Log(line);
                 if(line.IndexOf("failed to search process",StringComparison.OrdinalIgnoreCase)>=0)status.Text="UYARI: Süreç okunamadı; oyun proxy kullanımı doğrulanmadı.";
                 if(line.IndexOf("outbound/socks[game-proxy-",StringComparison.OrdinalIgnoreCase)>=0)status.Text="Proxy yönlendirme denemesi görüldü; oyun bağlantısı henüz doğrulanmadı.";
-                if(line.Contains("sing-box started")){ready=true;for(int i=0;i<(second.Checked?2:1);i++)slots[i].Launch.Enabled=true;status.Text="Durum: Motor hazır — oyun bağlantısı henüz doğrulanmadı";}});
+                if(line.Contains("sing-box started")){ready=true;SetBusy(true);status.Text="Durum: Motor hazır — oyun bağlantısı henüz doğrulanmadı";}});
             };
             proc.OutputDataReceived+=handler;proc.ErrorDataReceived+=handler;
             FlushDns();
@@ -284,7 +287,7 @@ class MainForm : Form {
             UI(delegate {Log("Motor kapandı (kod "+exit+"). Oyun açık kalırsa normal IP ile bağlanabilir.");Finished();});
         }catch(Exception ex){UI(delegate {Log(ex.Message);Finished();});}
     }
-    void Finished() {starting=false;ready=false;CleanConfig();SetBusy(false);status.Text="Durum: Bağlı değil";}
+    void Finished() {starting=false;ready=false;DisposeLive();CleanConfig();SetBusy(false);status.Text="Durum: Bağlı değil";}
     void Stop(object sender,EventArgs e) {
         // sing-box's Clash API is not enabled; killing is explicit and requires route cleanup verification.
         try {if(engine!=null&&!engine.HasExited){engine.Kill();status.Text="Durum: Motor durduruluyor…";}}catch(Exception ex){Error(ex);}
@@ -292,6 +295,7 @@ class MainForm : Form {
     void LaunchSlot(int index) {
         var slot=slots[index];
         try {
+            if(slot.Active==null)throw new Exception("Önce bu clientin proxy bağlantısını başlatın.");
             if(!ready || engine==null || engine.HasExited)throw new Exception("Motor hazır değil.");
             Process.Start(new ProcessStartInfo {FileName=slot.Launcher,WorkingDirectory=Path.GetDirectoryName(slot.Launcher),UseShellExecute=true});
             Log("Client "+(index+1)+" açıldı. Oyun bağlantılarında game-proxy-"+(index+1)+" çıkışını doğrulayın.");
@@ -302,7 +306,7 @@ class MainForm : Form {
         if(starting || updateBusy){e.Cancel=true;MessageBox.Show(this,"Motor başlatılıyor. Tamamlandıktan sonra kapatın.");return;}
         Persist();closing=true;
         try {if(engine!=null&&!engine.HasExited){engine.Kill();engine.WaitForExit(5000);}}catch(Exception){}
-        CleanConfig();
+        DisposeLive();CleanConfig();
     }
     void OpenLogs(object sender,EventArgs e) {
         try {
@@ -326,7 +330,7 @@ class MainForm : Form {
         });thread.IsBackground=true;thread.Start();
     }
     void UpdateFinished() {
-        updateBusy=false;update.Enabled=true;connect.Enabled=true;
+        updateBusy=false;SetBusy(starting||engine!=null);
         update.Text=availableUpdate==null?"Güncelleme kontrol":"Güncelle: v"+availableUpdate.Version;
     }
     void InstallUpdate() {

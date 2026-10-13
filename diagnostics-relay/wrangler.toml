@@ -1,0 +1,6 @@
+name = "niyazisugarproxy-diagnostics"
+main = "worker.mjs"
+compatibility_date = "2026-10-13"
+[vars]
+DIAGNOSTICS_REPO = "niyazisugar/NiyazisugarProxy-Diagnostics"
+# GITHUB_TOKEN and INGEST_KEY must be server secrets. Never commit values.

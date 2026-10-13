@@ -1,0 +1,20 @@
+name: Validate diagnostics feature
+on:
+  push:
+    branches: [diagnostics-relay]
+permissions:
+  contents: read
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile Windows app and test redaction
+        shell: pwsh
+        run: ./build.ps1
+  relay:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test private-only relay without production credentials
+        run: node --test diagnostics-relay/worker.test.mjs

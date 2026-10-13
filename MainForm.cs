@@ -43,12 +43,12 @@ class MainForm : Form {
     CheckBox second=new CheckBox(); ComboBox theme=new ComboBox(),accent=new ComboBox();
     Panel tabs=new Panel(); Panel[] pages;Button[] navigation=new Button[3];int selectedPage; AppPreferences preferences;
     UpdateRelease availableUpdate; bool updateBusy; string localLogPath;
-    Process engine; string configFile; bool starting,closing,ready,initializing=true;
+    Process engine; string configFile; bool starting,closing,ready,initializing=true,previewMode;
     readonly JavaScriptSerializer json=new JavaScriptSerializer();
     readonly string baseDir=AppDomain.CurrentDomain.BaseDirectory;
     public MainForm() : this(false) {}
     public MainForm(bool preview) {
-        preferences=AppPreferences.Load();
+        previewMode=preview;preferences=AppPreferences.Load();
         Text="NiyazisugarProxy"; FormBorderStyle=FormBorderStyle.None;ClientSize=new Size(1000,780); MinimumSize=MaximumSize=Size;
          StartPosition=FormStartPosition.CenterScreen;
         Font=new Font("Segoe UI",10); DoubleBuffered=true;
@@ -128,7 +128,7 @@ class MainForm : Form {
     void PrepareFields(Control root){foreach(Control child in root.Controls){var input=child as TextBox;if(input!=null)input.BorderStyle=BorderStyle.None;var combo=child as ComboBox;if(combo!=null){combo.FlatStyle=FlatStyle.Flat;combo.DrawMode=DrawMode.OwnerDrawFixed;combo.ItemHeight=23;combo.DrawItem+=delegate(object sender,DrawItemEventArgs e){var box=(ComboBox)sender;using(var brush=new SolidBrush(box.BackColor))e.Graphics.FillRectangle(brush,e.Bounds);string text=e.Index>=0?box.Items[e.Index].ToString():box.Text;TextRenderer.DrawText(e.Graphics,text,box.Font,e.Bounds,box.ForeColor,TextFormatFlags.Left|TextFormatFlags.VerticalCenter);if((e.State&DrawItemState.Selected)!=0)e.DrawFocusRectangle();};}PrepareFields(child);}}
     void RefreshServers(){for(int i=0;i<2;i++){string ip=slots[i].IP.Text;slots[i].Server.Items.Clear();slots[i].Server.Items.Add("Kayıtlı sunucu seç");foreach(var profile in preferences.Servers)slots[i].Server.Items.Add(profile);slots[i].Server.SelectedIndex=0;slots[i].IP.Text=ip;}}
     void SaveServer(int index){try{var s=slots[index];string cidr=RoutingConfig.ValidateFallback(s.IP.Text);if(cidr==null)throw new Exception("Önce sunucu IP'sini girin.");using(var dialog=new Form{Text="Sunucuyu kaydet",ClientSize=new Size(420,130),StartPosition=FormStartPosition.CenterParent,FormBorderStyle=FormBorderStyle.FixedDialog,MaximizeBox=false,MinimizeBox=false}){AddLabel(dialog,"Sunucu adı (ör. Sezar2)",15,12,10,false);var name=new TextBox{Left=15,Top=42,Width=390,MaxLength=80};dialog.Controls.Add(name);var selected=s.Server.SelectedItem as ServerProfile;if(selected!=null)name.Text=selected.Name;var ok=MakeButton("Kaydet",dialog,275,84,130,delegate{});ok.DialogResult=DialogResult.OK;dialog.AcceptButton=ok;if(dialog.ShowDialog(this)!=DialogResult.OK)return;if(String.IsNullOrWhiteSpace(name.Text))throw new Exception("Sunucu adı yazın.");preferences.PutServer(name.Text.Trim(),cidr.Substring(0,cidr.Length-3));RefreshServers();s.Server.SelectedItem=preferences.Servers.Find(delegate(ServerProfile item){return item.Name.Equals(name.Text.Trim(),StringComparison.OrdinalIgnoreCase);});Persist();Log("Sunucu kaydedildi: "+name.Text.Trim());}}catch(Exception ex){Error(ex);}}
-    void Persist(){if(initializing)return;try{preferences.Light=theme.SelectedIndex==1;preferences.Accent=accent.SelectedIndex;preferences.SecondEnabled=second.Checked;for(int i=0;i<2;i++)preferences.Slots[i]=new SlotPreference{Launcher=slots[i].Launcher,Files=slots[i].Files,IP=slots[i].IP.Text};preferences.Save();}catch(Exception ex){Log("Ayarlar kaydedilemedi: "+ex.Message);}}
+    void Persist(){if(initializing||previewMode)return;try{preferences.Light=theme.SelectedIndex==1;preferences.Accent=accent.SelectedIndex;preferences.SecondEnabled=second.Checked;for(int i=0;i<2;i++)preferences.Slots[i]=new SlotPreference{Launcher=slots[i].Launcher,Files=slots[i].Files,IP=slots[i].IP.Text};preferences.Save();}catch(Exception ex){Log("Ayarlar kaydedilemedi: "+ex.Message);}}
     void UI(Action a) { if(IsDisposed || closing)return; try { BeginInvoke(a); } catch(InvalidOperationException){} }
     void Log(string text) {
         if(String.IsNullOrEmpty(text))return;

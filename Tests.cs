@@ -11,6 +11,9 @@ class Tests {
         });
     }
     static void Reject(Action action) {try {action();}catch(Exception){return;}throw new Exception("Expected rejection");}
+    static System.Windows.Forms.Button FindButton(System.Windows.Forms.Control root,string text){foreach(System.Windows.Forms.Control c in root.Controls){var b=c as System.Windows.Forms.Button;if(b!=null&&b.Text==text)return b;var result=FindButton(c,text);if(result!=null)return result;}return null;}
+    static System.Windows.Forms.ComboBox FindTheme(System.Windows.Forms.Control root){foreach(System.Windows.Forms.Control c in root.Controls){var b=c as System.Windows.Forms.ComboBox;if(b!=null&&b.Items.Contains("Karanlık"))return b;var result=FindTheme(c);if(result!=null)return result;}return null;}
+    static void SavePreview(System.Windows.Forms.Form form,string path){using(var bitmap=new System.Drawing.Bitmap(form.Width,form.Height)){form.DrawToBitmap(bitmap,form.ClientRectangle);bitmap.Save(path);}}
     [STAThread] public static int Main(string[] args) {
         try {
             if(args.Length==2&&args[0]=="--config-check") {
@@ -58,7 +61,14 @@ class Tests {
             Console.WriteLine("Saved server/theme roundtrip and dual-client routing/conflict tests passed.");
             if(args.Length==1&&args[0]=="--ui-smoke") {
                 System.Windows.Forms.Application.EnableVisualStyles();
-                using(var form=new MainForm(true)){form.Show();System.Windows.Forms.Application.DoEvents();Assert(form.ClientSize.Width==1000);using(var bitmap=new System.Drawing.Bitmap(form.Width,form.Height)){form.DrawToBitmap(bitmap,form.ClientRectangle);bitmap.Save("ui-preview.png");}form.Close();}
+                using(var form=new MainForm(true)){
+                    form.Show();System.Windows.Forms.Application.DoEvents();Assert(form.ClientSize.Width==1000);
+                    SavePreview(form,"ui-preview.png");
+                    FindButton(form,"Ayarlar").PerformClick();System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-settings.png");
+                    FindButton(form,"Loglar").PerformClick();System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-logs.png");
+                    FindButton(form,"Ayarlar").PerformClick();var themeBox=FindTheme(form);Assert(themeBox!=null);themeBox.SelectedIndex=1;System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-light.png");
+                    form.Close();
+                }
                 Console.WriteLine("Windows UI construction and screenshot passed.");
             }
             string safe=Diagnostics.Clean("username demo password SECRET\n"+Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)+"\nAuthorization: Bearer TEST",new ProxyItem[]{new ProxyItem{User="demo",Password="SECRET"}});

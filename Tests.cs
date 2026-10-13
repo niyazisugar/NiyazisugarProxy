@@ -71,7 +71,7 @@ class Tests {
             }finally{if(Directory.Exists(prefDir))Directory.Delete(prefDir,true);}
             using(var guarded=new LiveRouting()){
                 var config=guarded.Config(new int[]{12345,12346},"Ethernet");var tun=(Dictionary<string,object>)((object[])config["inbounds"])[0];var addresses=(string[])tun["address"];Assert(addresses.Length==1&&addresses[0]=="172.28.250.1/30");
-                var routes=(object[])((Dictionary<string,object>)config["route"])["rules"];var self=(Dictionary<string,object>)routes[0];Assert((string)self["action"]=="reject"&&((string[])self["process_name"])[0]=="sing-box.exe"&&((string[])self["inbound"])[0]=="metin-tun");
+                var guardedRules=(object[])((Dictionary<string,object>)config["route"])["rules"];var self=(Dictionary<string,object>)guardedRules[0];Assert((string)self["action"]=="reject"&&((string[])self["process_name"])[0]=="sing-box.exe"&&((string[])self["inbound"])[0]=="metin-tun");
                 Assert(((Dictionary<string,object>)((object[])config["outbounds"])[0])["bind_interface"].Equals("Ethernet"));
                 Console.WriteLine("IPv4-only TUN and TUN-scoped engine self-loop guard tests passed.");
             }

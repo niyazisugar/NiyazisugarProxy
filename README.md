@@ -6,6 +6,10 @@ Windows Forms desktop app for routing a selected Metin2 launcher and its sibling
 
 Download **NiyazisugarProxy-Windows-x64.zip** from [Releases](../../releases/latest), extract it, and run `NiyazisugarProxy.exe`. The first installation on each PC is manual. Updates after that are installed from the app after the connection is stopped. Requires Windows with .NET Framework 4.x. The ZIP bundles the official sing-box 1.12.25 Windows AMD64 engine.
 
+## Client selection
+
+The selector accepts `.exe` and `.bin` files and supports selecting multiple files in one game directory. If only BIN files are selected, a second dialog asks for the launcher EXE. BIN files are routed but the game is started through its launcher. Files from different game directories are rejected.
+
 ## Updates
 
 The app checks public GitHub Releases at startup. Only newer stable versions are offered. The asset must be named `NiyazisugarProxy.exe` and its SHA256 digest must match the value reported by GitHub. A copied installer waits for the running app to exit, replaces the app, keeps `NiyazisugarProxy.exe.previous`, and restarts. Replacement/start errors attempt to restore the previous EXE. A successful process start does not prove the new version works; use the backup for manual rollback if needed. The engine and local files are not updated by the app updater. No GitHub token is embedded or required on client PCs.

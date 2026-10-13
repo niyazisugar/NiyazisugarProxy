@@ -23,6 +23,17 @@ class Tests {
             Reject(delegate {Updates.Parse(Release("v1.0.1",url,null,false),current);});
             Reject(delegate {Updates.Parse(Release("v1.0.1",url,"sha256:bad",false),current);});
             string file=Path.GetTempFileName();try {File.WriteAllText(file,"abc",new System.Text.UTF8Encoding(false));Assert(Updates.Hash(file)=="ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");}finally{File.Delete(file);}
+            string dir=Path.Combine(Path.GetTempPath(),Guid.NewGuid().ToString("N"));Directory.CreateDirectory(dir);
+            try {
+                string launcher=Path.Combine(dir,"#Launcher.exe"),bin=Path.Combine(dir,"metin2client.bin"),other=Path.Combine(dir,"sezar2client.bin");
+                File.WriteAllText(launcher,"");File.WriteAllText(bin,"");File.WriteAllText(other,"");
+                string[] patterns=ClientFiles.Patterns(new string[]{bin,other},launcher);
+                Assert(patterns.Length==3);
+                bool match=false;foreach(string pattern in patterns)if(System.Text.RegularExpressions.Regex.IsMatch(bin,pattern))match=true;Assert(match);
+                foreach(string pattern in patterns)Assert(!System.Text.RegularExpressions.Regex.IsMatch(Path.Combine(dir,"different", "metin2client.bin"),pattern));
+                Assert(ClientFiles.Supported(bin));Assert(!ClientFiles.Supported("data.txt"));
+            }finally{Directory.Delete(dir,true);}
+            Console.WriteLine("BIN selection and separate-directory routing tests passed.");
             Console.WriteLine("Update parsing, rollback version rejection, trusted URL and SHA256 tests passed.");return 0;
         }catch(Exception e){Console.Error.WriteLine(e);return 1;}
     }

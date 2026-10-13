@@ -2,7 +2,9 @@ NIYAZISUGARPROXY — Windows x64
 
 1. ZIP'in tamamini yeni bir klasore cikartin.
 2. NiyazisugarProxy.exe'yi acin. Yonetici iznini kabul edin.
-3. Proxy listenizi Liste yukle ile secin, oyun launcher .exe'sini secin.
+3. Proxy listenizi Liste yukle ile secin, oyun .exe / .bin dosyalarini secin.
+   Birden fazla dosya secilebilir. Yalnizca BIN secerseniz acilan ikinci
+   pencerede launcher EXE'yi secin. Hepsi ayni oyun klasorunde olmali.
 4. Baglan, ardindan Oyunu ac.
 Python veya tarayici gerekmez. .NET Framework 4.x gerekir.
 Pakette sing-box 1.12.25 windows-amd64 motoru bulunur (resmi SagerNet surumu).

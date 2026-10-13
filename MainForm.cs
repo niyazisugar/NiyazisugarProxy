@@ -28,6 +28,7 @@ class MainForm : Form {
     ComboBox proxies=new ComboBox(); TextBox client=new TextBox(); TextBox logs=new TextBox();
     Label status=new Label(); Button load,add,select,connect,stop,launch,update;
     UpdateRelease availableUpdate; bool updateBusy;
+    string launcherPath; string[] selectedFiles=new string[0];
     Process engine; string configFile; bool starting,closing,ready;
     readonly JavaScriptSerializer json=new JavaScriptSerializer();
     readonly string baseDir=AppDomain.CurrentDomain.BaseDirectory;
@@ -38,8 +39,8 @@ class MainForm : Form {
         Controls.Add(new Label {Text="İstediğiniz sunucunun asıl oyun clientini seçin",AutoSize=true,Location=new Point(24,61)});
         load=Btn("Liste yükle",22,100,120,LoadList); add=Btn("Proxy ekle",640,100,118,AddProxy);
         proxies.SetBounds(150,104,480,30); proxies.DropDownStyle=ComboBoxStyle.DropDownList; Controls.Add(proxies);
-        Controls.Add(new Label {Text="Asıl oyun .exe dosyası (bağlantıyı kuran client)",AutoSize=true,Location=new Point(24,155)});
-        client.SetBounds(22,185,608,30); client.ReadOnly=true; Controls.Add(client); select=Btn("EXE seç",640,182,118,SelectClient);
+        Controls.Add(new Label {Text="Oyun clientleri (.exe / .bin) — birden fazla seçilebilir",AutoSize=true,Location=new Point(24,155)});
+        client.SetBounds(22,185,608,30); client.ReadOnly=true; Controls.Add(client); select=Btn("Client seç",640,182,118,SelectClient);
         connect=Btn("Bağlan",22,235,145,Connect); stop=Btn("Durdur",177,235,145,Stop); launch=Btn("Oyunu aç",332,235,145,Launch);
         stop.Enabled=false; launch.Enabled=false;
         update=Btn("Güncelleme kontrol",487,235,271,CheckUpdates);
@@ -85,7 +86,23 @@ class MainForm : Form {
         }
     }
     void SelectClient(object sender,EventArgs e) {
-        using(OpenFileDialog d=new OpenFileDialog {Filter="Oyun client (*.exe)|*.exe"}) if(d.ShowDialog()==DialogResult.OK)client.Text=Path.GetFullPath(d.FileName);
+        using(OpenFileDialog d=new OpenFileDialog {Title="Oyun clientlerini seçin",Multiselect=true,Filter="Oyun clientleri (*.exe;*.bin)|*.exe;*.bin|EXE dosyaları|*.exe|BIN dosyaları|*.bin"}) {
+            if(d.ShowDialog()!=DialogResult.OK)return;
+            string launcher=null;
+            foreach(string p in d.FileNames)if(Path.GetExtension(p).Equals(".exe",StringComparison.OrdinalIgnoreCase)) {
+                if(launcher!=null) {MessageBox.Show(this,"Yalnızca bir launcher EXE seçin; BIN dosyalarıyla birlikte seçebilirsiniz.");return;}
+                launcher=Path.GetFullPath(p);
+            }
+            if(launcher==null)using(OpenFileDialog l=new OpenFileDialog {Title="Oyunu açacak launcher EXE'yi seçin",InitialDirectory=Path.GetDirectoryName(d.FileNames[0]),Filter="Launcher (*.exe)|*.exe"}) {
+                if(l.ShowDialog()!=DialogResult.OK)return;launcher=Path.GetFullPath(l.FileName);
+            }
+            try {
+                string[] patterns=ClientFiles.Patterns(d.FileNames,launcher);
+                selectedFiles=d.FileNames;launcherPath=launcher;client.Text=String.Join(" ; ",d.FileNames);
+                Log("Launcher: "+launcherPath);
+                Log("Yönlendirilecek client sayısı: "+patterns.Length);
+            }catch(Exception ex){Error(ex);}
+        }
     }
     void SetBusy(bool busy) {
         load.Enabled=add.Enabled=select.Enabled=connect.Enabled=proxies.Enabled=!busy;
@@ -94,12 +111,7 @@ class MainForm : Form {
     }
     string Config(string exe,ProxyItem p) {
         var proxy=new Dictionary<string,object> {{"type","socks"},{"tag","game-proxy"},{"version","5"},{"server",p.Host},{"server_port",p.Port},{"username",p.User},{"password",p.Password}};
-        var paths=new List<string> {"(?i)^"+Regex.Escape(exe)+"$"};
-        foreach(string name in new string[]{"metin2client.bin","sezar2client.bin"}) {
-            string candidate=Path.Combine(Path.GetDirectoryName(exe),name);
-            if(File.Exists(candidate))paths.Add("(?i)^"+Regex.Escape(candidate)+"$");
-        }
-        var rule=new Dictionary<string,object> {{"process_path_regex",paths.ToArray()},{"action","route"},{"outbound","game-proxy"}};
+        var rule=new Dictionary<string,object> {{"process_path_regex",ClientFiles.Patterns(selectedFiles,launcherPath)},{"action","route"},{"outbound","game-proxy"}};
         var tun=new Dictionary<string,object> {{"type","tun"},{"tag","metin-tun"},{"interface_name","NiyazisugarProxy"},{"address",new string[]{"172.29.240.1/30","fd42:6d65:7469::1/126"}},{"auto_route",true},{"strict_route",false},{"stack","mixed"}};
         var config=new Dictionary<string,object> {
             {"log",new Dictionary<string,object>{{"level","info"},{"timestamp",true}}},
@@ -114,10 +126,10 @@ class MainForm : Form {
             if(updateBusy)throw new Exception("Güncelleme işlemini bekleyin.");
             using(WindowsIdentity id=WindowsIdentity.GetCurrent())if(!new WindowsPrincipal(id).IsInRole(WindowsBuiltInRole.Administrator))throw new Exception("Uygulamayı yönetici olarak çalıştırın.");
             if(proxies.SelectedItem==null)throw new Exception("Proxy seçin.");
-            if(!File.Exists(client.Text)||!client.Text.EndsWith(".exe",StringComparison.OrdinalIgnoreCase))throw new Exception("Asıl oyun .exe dosyasını seçin.");
+            if(selectedFiles.Length==0||!File.Exists(launcherPath))throw new Exception("Client ve launcher dosyalarını seçin.");
             string bin=Path.Combine(baseDir,"sing-box.exe"); if(!File.Exists(bin))throw new Exception("sing-box.exe eksik. KURULUM.txt dosyasını okuyun.");
             configFile=Path.Combine(Path.GetTempPath(),"metinproxy-"+Guid.NewGuid().ToString("N")+".json");
-            File.WriteAllText(configFile,Config(client.Text,(ProxyItem)proxies.SelectedItem),new UTF8Encoding(false));
+            File.WriteAllText(configFile,Config(launcherPath,(ProxyItem)proxies.SelectedItem),new UTF8Encoding(false));
             starting=true;ready=false;SetBusy(true);status.Text="Durum: Yapılandırma kontrol ediliyor…";
             var worker=new Thread(delegate() {StartEngine(bin);}); worker.IsBackground=true;worker.Start();
         }catch(Exception ex){CleanConfig();Error(ex);}
@@ -156,7 +168,7 @@ class MainForm : Form {
     void Launch(object sender,EventArgs e) {
         try {
             if(!ready || engine==null || engine.HasExited)throw new Exception("Motor hazır değil.");
-            Process.Start(new ProcessStartInfo {FileName=client.Text,WorkingDirectory=Path.GetDirectoryName(client.Text),UseShellExecute=true});
+            Process.Start(new ProcessStartInfo {FileName=launcherPath,WorkingDirectory=Path.GetDirectoryName(launcherPath),UseShellExecute=true});
             Log("Client açıldı. Oyun bağlantılarında game-proxy çıkışını doğrulayın.");
         }catch(Exception ex){Error(ex);}
     }

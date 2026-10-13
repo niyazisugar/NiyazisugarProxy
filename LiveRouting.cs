@@ -20,7 +20,7 @@ sealed class LiveRouting : IDisposable {
         var config=RoutingConfig.Build(new ProxyItem{Host="127.0.0.1",Port=ports[0],User="",Password=""},iface,new string[]{"^$"},"");
         config["outbounds"]=new object[]{RoutingConfig.D("type","direct","tag","direct","bind_interface",iface),RoutingConfig.D("type","socks","tag","game-proxy-1","server","127.0.0.1","server_port",ports[0],"version","5"),RoutingConfig.D("type","socks","tag","game-proxy-2","server","127.0.0.1","server_port",ports[1],"version","5")};
         var route=(Dictionary<string,object>)config["route"];route.Remove("default_interface");var sets=new List<object>();for(int i=0;i<5;i++)sets.Add(RoutingConfig.D("type","local","tag","slot-rules-"+i,"format","source","path",Paths[i]));route["rule_set"]=sets.ToArray();
-        var rules=new List<object>{RoutingConfig.D("port",new int[]{53},"action","hijack-dns")};
+        var rules=new List<object>{RoutingConfig.D("inbound",new string[]{"metin-tun"},"process_name",new string[]{"sing-box.exe"},"action","reject"),RoutingConfig.D("port",new int[]{53},"action","hijack-dns")};
         for(int i=0;i<2;i++){rules.Add(RoutingConfig.D("rule_set",new string[]{"slot-rules-"+i},"ip_version",6,"action","reject"));rules.Add(RoutingConfig.D("rule_set",new string[]{"slot-rules-"+i},"network","tcp","action","route","outbound","game-proxy-"+(i+1)));rules.Add(RoutingConfig.D("rule_set",new string[]{"slot-rules-"+i},"action","reject"));}
         rules.Add(RoutingConfig.D("rule_set",new string[]{"slot-rules-4"},"network","tcp","action","reject"));
         for(int i=0;i<2;i++)rules.Add(RoutingConfig.D("rule_set",new string[]{"slot-rules-"+(i+2)},"network","tcp","action","route","outbound","game-proxy-"+(i+1)));

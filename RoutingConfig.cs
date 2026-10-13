@@ -36,7 +36,7 @@ static class RoutingConfig {
         if(SharedIP(clients))rules.Add(D("ip_cidr",new string[]{ValidateFallback(clients[0].IP)},"network","tcp","action","reject"));
         else foreach(var c in clients){string cidr=ValidateFallback(c.IP);if(cidr!=null)rules.Add(D("ip_cidr",new string[]{cidr},"network","tcp","action","route","outbound",c.Tag));}
         return D("log",D("level","info","timestamp",true),
-          "inbounds",new object[]{D("type","tun","tag","metin-tun","interface_name","NiyazisugarProxy","address",new string[]{"172.28.250.1/30","fdfe:dcba:9876::1/126"},"mtu",1500,"auto_route",true,"strict_route",true,"stack","mixed","dns_mode","hijack")},
+          "inbounds",new object[]{D("type","tun","tag","metin-tun","interface_name","NiyazisugarProxy","address",new string[]{"172.28.250.1/30"},"mtu",1500,"auto_route",true,"strict_route",true,"stack","mixed","dns_mode","hijack")},
           "dns",D("servers",new object[]{D("type","https","tag","direct-dns","server","1.1.1.1","server_port",443,"path","/dns-query","tls",D("enabled",true,"server_name","cloudflare-dns.com"),"detour","direct")},"final","direct-dns","strategy","ipv4_only"),
           "outbounds",outbounds.ToArray(),
           "route",D("default_interface",iface,"find_process",true,"rules",rules.ToArray(),"final","direct"));

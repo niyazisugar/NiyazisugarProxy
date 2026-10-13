@@ -31,12 +31,39 @@ static class Diagnostics {
     class TimedClient:WebClient {
         protected override WebRequest GetWebRequest(Uri address){var r=base.GetWebRequest(address);r.Timeout=20000;var http=r as HttpWebRequest;if(http!=null)http.AllowAutoRedirect=false;return r;}
     }
+    public static string FailureMessage(int status,string code) {
+        switch(code) {
+            case "unauthorized": return "HTTP 401: Bağlantı kodu uyuşmuyor. Tanılama ayarlarına Cloudflare INGEST_KEY değerini tekrar girin.";
+            case "service_not_configured": return "HTTP 503: Cloudflare servis değişkenleri eksik veya geçersiz.";
+            case "repository_unavailable": return "HTTP 502: GitHub anahtarı özel tanılama deposunu okuyamıyor. GITHUB_TOKEN depo erişimini kontrol edin.";
+            case "github_write_failed": return "HTTP 502: GitHub kayıt oluşturmayı reddetti. Issues: Read and write iznini ve deponun Issues ayarını kontrol edin.";
+            case "private_repository_required": return "HTTP 503: Tanılama deposu Private olmalı.";
+            case "not_found": return "HTTP 404: Gönderme adresinin sonunda /reports olmalı.";
+            case "too_large": return "HTTP 413: Tanılama kaydı boyut sınırını aşıyor.";
+            case "invalid_report": return "HTTP 400: Tanılama kaydı biçimi geçersiz.";
+            default: return "Gönderim başarısız. HTTP "+status+". Kayıt oluşturulduğu doğrulanamadı.";
+        }
+    }
     public static int Send(DiagnosticSettings settings,string report) {
         ServicePointManager.SecurityProtocol=SecurityProtocolType.Tls12;
         using(var c=new TimedClient()) {
             c.Encoding=Encoding.UTF8;c.Headers["Content-Type"]="application/json";c.Headers["Authorization"]="Bearer "+settings.Key;
             var payload=new Dictionary<string,object>{{"version",Updates.Current.ToString(3)},{"log",report}};
-            string result=c.UploadString(settings.Endpoint,"POST",new JavaScriptSerializer().Serialize(payload));
+            string result;
+            try {result=c.UploadString(settings.Endpoint,"POST",new JavaScriptSerializer().Serialize(payload));}
+            catch(WebException ex) {
+                var response=ex.Response as HttpWebResponse;
+                if(response==null)throw new Exception("Servise ulaşılamadı ("+ex.Status+"). İnternet veya TLS bağlantısını kontrol edin.");
+                int status=(int)response.StatusCode;string code="";
+                using(response)try {
+                    using(var reader=new StreamReader(response.GetResponseStream())) {
+                        char[] buffer=new char[4096];int count=reader.ReadBlock(buffer,0,buffer.Length);
+                        var error=new JavaScriptSerializer().Deserialize<Dictionary<string,object>>(new string(buffer,0,count));
+                        object value;if(error.TryGetValue("error",out value))code=value as string;
+                    }
+                }catch(Exception){}
+                throw new Exception(FailureMessage(status,code));
+            }
             var receipt=new JavaScriptSerializer().Deserialize<Dictionary<string,object>>(result);
             int number=Convert.ToInt32(receipt["number"]);if(number<=0)throw new Exception("Gönderme sonucu geçersiz.");return number;
         }

@@ -31,6 +31,9 @@ class Tests {
             }
             string safe=Diagnostics.Clean("username demo password SECRET\n"+Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)+"\nAuthorization: Bearer TEST",new ProxyItem[]{new ProxyItem{User="demo",Password="SECRET"}});
             Assert(!safe.Contains("SECRET")&&!safe.Contains("demo")&&!safe.Contains("Bearer TEST"));
+            Assert(Diagnostics.FailureMessage(401,"unauthorized").Contains("INGEST_KEY"));
+            Assert(Diagnostics.FailureMessage(502,"github_write_failed").Contains("Issues"));
+            Assert(!Diagnostics.FailureMessage(502,"ghp_example").Contains("ghp_example"));
             Assert(RoutingConfig.ValidateFallback("")==null);
             Assert(RoutingConfig.ValidateFallback("185.128.114.39")=="185.128.114.39/32");
             Reject(delegate {RoutingConfig.ValidateFallback("bad-ip");});

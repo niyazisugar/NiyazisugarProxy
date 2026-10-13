@@ -12,6 +12,11 @@ jobs:
       - name: Compile Windows app and test redaction
         shell: pwsh
         run: ./build.ps1
+      - name: Real Windows HTTPS transport check without credentials
+        shell: pwsh
+        run: |
+          & ./dist/Tests.exe --transport-smoke
+          if ($LASTEXITCODE -ne 0) { throw 'Windows HTTPS transport check failed' }
   relay:
     runs-on: ubuntu-latest
     steps:

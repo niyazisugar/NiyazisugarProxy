@@ -48,6 +48,15 @@ class Tests {
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(2,2),new System.Drawing.Size(840,650),10)==13);
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(839,649),new System.Drawing.Size(840,650),10)==17);
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(200,300),new System.Drawing.Size(840,650),10)==1);
+            string vaultDir=Path.Combine(Path.GetTempPath(),"ProxyVaultTest-"+Guid.NewGuid().ToString("N"));
+            try{
+                string vaultFile=Path.Combine(vaultDir,"proxies.dat");var saved=new ProxySnapshot{Items=new ProxyItem[]{ProxyItem.Parse("192.0.2.1:1080:vault-user:vault-password"),ProxyItem.Parse("192.0.2.2:1081")},Selected=new int[]{1,0}};
+                ProxyVault.SaveTo(vaultFile,saved);var restored=ProxyVault.LoadFrom(vaultFile);Assert(restored.Items.Length==2&&restored.Items[0].Password=="vault-password"&&restored.Items[0].User=="vault-user"&&restored.Selected[0]==1);
+                string raw=System.Text.Encoding.UTF8.GetString(File.ReadAllBytes(vaultFile));Assert(!raw.Contains("vault-user")&&!raw.Contains("vault-password")&&!raw.Contains("192.0.2.1"));
+                saved.Items=new ProxyItem[]{saved.Items[1]};saved.Selected=new int[]{0,0};ProxyVault.SaveTo(vaultFile,saved);Assert(ProxyVault.LoadFrom(vaultFile).Items.Length==1);
+                File.WriteAllText(vaultFile,"corrupted");Reject(delegate{ProxyVault.LoadFrom(vaultFile);});Assert(File.ReadAllText(vaultFile)=="corrupted");
+                Console.WriteLine("DPAPI proxy list persistence, selected proxy restoration and encrypted-file tests passed.");
+            }finally{if(Directory.Exists(vaultDir))Directory.Delete(vaultDir,true);}
             RelayTests.Run();
             string prefDir=Path.Combine(Path.GetTempPath(),"PreferencesTest-"+Guid.NewGuid().ToString("N"));
             try {

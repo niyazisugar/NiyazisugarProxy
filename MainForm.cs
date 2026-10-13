@@ -44,7 +44,7 @@ class MainForm : Form {
     Panel tabs=new Panel(); Panel header;Panel[] pages;Button[] navigation=new Button[3];int selectedPage; AppPreferences preferences;
     UpdateRelease availableUpdate; bool updateBusy; string localLogPath;
     SlotRelay[] relays;LiveRouting liveRoutes;
-    Process engine; string configFile; bool starting,closing,ready,initializing=true,previewMode;
+    Process engine; string configFile; bool starting,closing,ready,initializing=true,previewMode,proxyLoading;
     readonly JavaScriptSerializer json=new JavaScriptSerializer();
     readonly string baseDir=AppDomain.CurrentDomain.BaseDirectory;
     public MainForm() : this(false) {}
@@ -94,6 +94,7 @@ class MainForm : Form {
             slots[i].Client.Text=String.Join(" ; ",slots[i].Files);slots[i].IP.Text=saved.IP??"";
             foreach(ServerProfile profile in preferences.Servers)if(profile.IP==slots[i].IP.Text){slots[i].Server.SelectedItem=profile;break;}
         }
+        if(!preview)RestoreProxies();foreach(var slot in slots)slot.Proxy.SelectedIndexChanged+=delegate{SaveProxies();};
         initializing=false;PrepareFields(this);ShowPage(0);ApplyTheme();Resize+=delegate{if(!initializing&&WindowState!=FormWindowState.Minimized){LayoutWindow();RoundWindow();}};ResizeEnd+=delegate{Persist();};LayoutWindow();RoundWindow();SetBusy(false);
         FormClosing+=OnClosing;
         if(!preview) {
@@ -180,6 +181,8 @@ class MainForm : Form {
         if(logs.TextLength>120000)logs.Clear(); logs.AppendText(text.TrimEnd()+Environment.NewLine);
     }
     void Error(Exception e) {MessageBox.Show(this,e.Message,"NiyazisugarProxy",MessageBoxButtons.OK,MessageBoxIcon.Error);}
+    void RestoreProxies(){try{var saved=ProxyVault.Load();proxyLoading=true;for(int i=0;i<2;i++){slots[i].Proxy.Items.AddRange(saved.Items);int selected=saved.Selected[i];slots[i].Proxy.SelectedIndex=saved.Items.Length==0?-1:selected>=0&&selected<saved.Items.Length?selected:Math.Min(i,saved.Items.Length-1);}}catch(Exception ex){logs.AppendText("Kayıtlı proxy listesi okunamadı; kayıt dosyası korundu. "+ex.GetType().Name+Environment.NewLine);}finally{proxyLoading=false;}}
+    void SaveProxies(){if(initializing||previewMode||proxyLoading)return;try{var items=new List<ProxyItem>();foreach(ProxyItem item in proxies.Items)items.Add(item);ProxyVault.Save(new ProxySnapshot{Items=items.ToArray(),Selected=new int[]{slots[0].Proxy.SelectedIndex,slots[1].Proxy.SelectedIndex}});}catch(Exception ex){Log("Proxy listesi kaydedilemedi: "+ex.GetType().Name);}}
     void LoadList(object sender,EventArgs e) {
         using(OpenFileDialog d=new OpenFileDialog {Filter="Proxy listesi (*.txt)|*.txt|Tüm dosyalar|*.*"}) {
             if(d.ShowDialog()!=DialogResult.OK)return;
@@ -190,7 +193,7 @@ class MainForm : Form {
                     try {list.Add(ProxyItem.Parse(line));} catch {throw new ArgumentException(n+". satırın proxy formatı geçersiz.");}
                 }
                 if(list.Count==0)throw new ArgumentException("Liste boş.");
-                for(int i=0;i<slots.Length;i++){slots[i].Proxy.Items.Clear();slots[i].Proxy.Items.AddRange(list.ToArray());slots[i].Proxy.SelectedIndex=Math.Min(i,list.Count-1);} Log(list.Count+" proxy yüklendi.");
+                proxyLoading=true;try{for(int i=0;i<slots.Length;i++){slots[i].Proxy.Items.Clear();slots[i].Proxy.Items.AddRange(list.ToArray());slots[i].Proxy.SelectedIndex=Math.Min(i,list.Count-1);}}finally{proxyLoading=false;}SaveProxies(); Log(list.Count+" proxy yüklendi.");
             } catch(Exception ex) {Error(ex);}
         }
     }
@@ -200,7 +203,7 @@ class MainForm : Form {
             var input=new TextBox {Location=new Point(12,40),Width=450,UseSystemPasswordChar=true};
             var ok=new Button {Text="Ekle",Location=new Point(362,78),DialogResult=DialogResult.OK};
             d.Controls.Add(label);d.Controls.Add(input);d.Controls.Add(ok);d.AcceptButton=ok;
-            if(d.ShowDialog(this)==DialogResult.OK)try {var item=ProxyItem.Parse(input.Text);for(int i=0;i<slots.Length;i++){slots[i].Proxy.Items.Add(item);if(slots[i].Active==null&&(i==0||slots[i].Proxy.SelectedIndex<0))slots[i].Proxy.SelectedIndex=slots[i].Proxy.Items.Count-1;}}catch(Exception ex){Error(ex);}
+            if(d.ShowDialog(this)==DialogResult.OK)try {var item=ProxyItem.Parse(input.Text);proxyLoading=true;try{for(int i=0;i<slots.Length;i++){slots[i].Proxy.Items.Add(item);if(slots[i].Active==null&&(i==0||slots[i].Proxy.SelectedIndex<0))slots[i].Proxy.SelectedIndex=slots[i].Proxy.Items.Count-1;}}finally{proxyLoading=false;}SaveProxies();}catch(Exception ex){Error(ex);}
         }
     }
     void SelectSlot(int index) {

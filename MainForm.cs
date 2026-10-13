@@ -49,8 +49,8 @@ class MainForm : Form {
     public MainForm() : this(false) {}
     public MainForm(bool preview) {
         preferences=AppPreferences.Load();
-        Text="NiyazisugarProxy"; ClientSize=new Size(1000,780); MinimumSize=MaximumSize=Size;
-        FormBorderStyle=FormBorderStyle.None; StartPosition=FormStartPosition.CenterScreen;
+        Text="NiyazisugarProxy"; FormBorderStyle=FormBorderStyle.None;ClientSize=new Size(1000,780); MinimumSize=MaximumSize=Size;
+         StartPosition=FormStartPosition.CenterScreen;
         Font=new Font("Segoe UI",10); DoubleBuffered=true;
         var header=new Panel{Dock=DockStyle.Top,Height=88};Controls.Add(header);
         header.Controls.Add(new Label{Text="NIYAZISUGAR",Font=new Font("Segoe UI",21,FontStyle.Bold),AutoSize=true,Location=new Point(26,14)});
@@ -58,9 +58,10 @@ class MainForm : Form {
         header.MouseDown+=DragWindow;foreach(Control c in header.Controls)c.MouseDown+=DragWindow;
         var minimize=MakeButton("—",header,890,20,40,delegate{WindowState=FormWindowState.Minimized;});
         var close=MakeButton("×",header,936,20,40,delegate{Close();});
-        tabs.SetBounds(22,100,956,658);tabs.Font=Font;Controls.Add(tabs);
+        tabs.SetBounds(22,145,956,613);tabs.Font=Font;tabs.Appearance=TabAppearance.FlatButtons;tabs.ItemSize=new Size(0,1);tabs.SizeMode=TabSizeMode.Fixed;Controls.Add(tabs);
         var dashboard=new TabPage("Clientler");var settings=new TabPage("Ayarlar");var activity=new TabPage("Loglar");
         tabs.TabPages.AddRange(new TabPage[]{dashboard,settings,activity});
+        for(int nav=0;nav<3;nav++){int page=nav;MakeButton(new string[]{"Clientler","Ayarlar","Loglar"}[nav],this,22+nav*155,99,145,delegate{tabs.SelectedIndex=page;});}
         load=MakeButton("Liste yükle",dashboard,18,18,130,LoadList);
         add=MakeButton("Proxy ekle",dashboard,158,18,130,AddProxy);
         second.Text="2. client etkin";second.SetBounds(730,23,185,30);second.Checked=preferences.SecondEnabled;dashboard.Controls.Add(second);
@@ -69,7 +70,7 @@ class MainForm : Form {
         slots[1].Card.Enabled=second.Checked;
         connect=MakeButton("Proxyleri bağla",dashboard,18,496,210,Connect);
         stop=MakeButton("Durdur",dashboard,240,496,120,Stop);stop.Enabled=false;
-        status.SetBounds(18,551,904,58);status.Text="Hazır • Client ve proxy seçerek başlayın.";dashboard.Controls.Add(status);
+        status.SetBounds(18,551,904,42);status.Text="Hazır • Client ve proxy seçerek başlayın.";dashboard.Controls.Add(status);
         var appearance=new RoundedPanel();appearance.SetBounds(18,18,904,228);settings.Controls.Add(appearance);
         AddLabel(appearance,"Görünüm",20,15,16,true);
         AddLabel(appearance,"Tema",20,65,10,false);theme.SetBounds(210,61,300,30);theme.DropDownStyle=ComboBoxStyle.DropDownList;
@@ -90,6 +91,7 @@ class MainForm : Form {
         for(int i=0;i<2;i++) {
             SlotPreference saved=preferences.Slots[i];slots[i].Launcher=saved.Launcher;slots[i].Files=saved.Files??new string[0];
             slots[i].Client.Text=String.Join(" ; ",slots[i].Files);slots[i].IP.Text=saved.IP??"";
+            foreach(ServerProfile profile in preferences.Servers)if(profile.IP==slots[i].IP.Text){slots[i].Server.SelectedItem=profile;break;}
         }
         initializing=false;ApplyTheme();Resize+=delegate{RoundWindow();};RoundWindow();
         FormClosing+=OnClosing;

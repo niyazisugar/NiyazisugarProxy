@@ -11,7 +11,7 @@ sealed class LiveRouting : IDisposable {
     public void Update(ClientRoute[] clients){
         // Clear unknown-process fallbacks before changing ownership of a shared destination.
         Write(2,new object[0]);Write(3,new object[0]);Write(4,new object[0]);
-        for(int i=0;i<2;i++){var c=clients[i];var rules=new List<object>();if(c!=null){var match=RoutingConfig.D("process_path_regex",c.Patterns);string cidr=RoutingConfig.ValidateFallback(c.IP);if(cidr!=null)match.Add("ip_cidr",new string[]{cidr});rules.Add(match);}Write(i,rules.ToArray());}
+        for(int i=0;i<2;i++){var c=clients[i];var rules=new List<object>();if(c!=null){var match=RoutingConfig.D("process_path_regex",c.Patterns);string cidr=RoutingConfig.ValidateFallback(c.IP);if(cidr!=null)match.Add("ip_cidr",new string[]{cidr});rules.Add(match);rules.Add(RoutingConfig.D("process_path_regex",c.Patterns,"ip_cidr",new string[]{"::/0"}));}Write(i,rules.ToArray());}
         bool shared=clients[0]!=null&&clients[1]!=null&&RoutingConfig.SharedIP(clients);
         if(shared)Write(4,new object[]{RoutingConfig.D("ip_cidr",new string[]{RoutingConfig.ValidateFallback(clients[0].IP)})});
         else for(int i=0;i<2;i++)if(clients[i]!=null){string cidr=RoutingConfig.ValidateFallback(clients[i].IP);if(cidr!=null)Write(i+2,new object[]{RoutingConfig.D("ip_cidr",new string[]{cidr})});}

@@ -26,7 +26,7 @@ class ProxyItem {
 
 class MainForm : Form {
     ComboBox proxies=new ComboBox(); TextBox client=new TextBox(); TextBox logs=new TextBox();
-    Label status=new Label(); Button load,add,select,connect,stop,launch,update;
+    Label status=new Label(); Button load,add,select,connect,stop,launch,update,sendReport;
     UpdateRelease availableUpdate; bool updateBusy;
     TextBox serverIP=new TextBox();
     string launcherPath; string[] selectedFiles=new string[0];
@@ -34,7 +34,7 @@ class MainForm : Form {
     readonly JavaScriptSerializer json=new JavaScriptSerializer();
     readonly string baseDir=AppDomain.CurrentDomain.BaseDirectory;
     public MainForm() {
-        Text="NiyazisugarProxy v"+Updates.Current.ToString(3)+" • Metin2 Client SOCKS5"; ClientSize=new Size(780,580); MinimumSize=new Size(796,619);
+        Text="NiyazisugarProxy v"+Updates.Current.ToString(3)+" • Metin2 Client SOCKS5"; ClientSize=new Size(780,625); MinimumSize=new Size(796,664);
         BackColor=Color.FromArgb(37,27,55); ForeColor=Color.FromArgb(237,230,250); Font=new Font("Segoe UI",10);
         Label title=new Label {Text="NIYAZISUGAR PROXY",Font=new Font("Segoe UI",19,FontStyle.Bold),AutoSize=true,Location=new Point(22,18)}; Controls.Add(title);
         Controls.Add(new Label {Text="İstediğiniz sunucunun asıl oyun clientini seçin",AutoSize=true,Location=new Point(24,61)});
@@ -53,6 +53,8 @@ class MainForm : Form {
         Controls.Add(new Label {Text="IP girilirse o adrese giden tüm TCP bağlantıları proxy kullanır. Boş bırakılabilir.",AutoSize=true,Location=new Point(22,367)});
         logs.SetBounds(22,403,736,153); logs.Multiline=true; logs.ReadOnly=true; logs.ScrollBars=ScrollBars.Vertical;
         logs.BackColor=Color.FromArgb(23,15,37); logs.ForeColor=ForeColor; logs.Font=new Font("Consolas",9); logs.Anchor=AnchorStyles.Top|AnchorStyles.Bottom|AnchorStyles.Left|AnchorStyles.Right; Controls.Add(logs);
+        sendReport=Btn("Tanılama gönder",22,574,200,SendDiagnostics);
+        sendReport.Anchor=AnchorStyles.Bottom|AnchorStyles.Left;
         FormClosing+=OnClosing;
     }
     Button Btn(string text,int x,int y,int width,EventHandler action) {
@@ -62,7 +64,10 @@ class MainForm : Form {
     void UI(Action a) { if(IsDisposed || closing)return; try { BeginInvoke(a); } catch(InvalidOperationException){} }
     void Log(string text) {
         if(String.IsNullOrEmpty(text))return;
-        foreach(ProxyItem p in proxies.Items) if(!String.IsNullOrEmpty(p.Password)) text=text.Replace(p.Password,"[gizli]");
+        foreach(ProxyItem p in proxies.Items) {
+            if(!String.IsNullOrEmpty(p.Password))text=text.Replace(p.Password,"[gizli]");
+            if(!String.IsNullOrEmpty(p.User))text=text.Replace(p.User,"[gizli]");
+        }
         if(logs.TextLength>120000)logs.Clear(); logs.AppendText(text.TrimEnd()+Environment.NewLine);
     }
     void Error(Exception e) {MessageBox.Show(this,e.Message,"NiyazisugarProxy",MessageBoxButtons.OK,MessageBoxIcon.Error);}
@@ -183,6 +188,32 @@ class MainForm : Form {
         closing=true;
         try {if(engine!=null&&!engine.HasExited){engine.Kill();engine.WaitForExit(5000);}}catch(Exception){}
         CleanConfig();
+    }
+    DiagnosticSettings SetupDiagnostics() {
+        using(Form dialog=new Form {Text="Tanılama bağlantısını kur",ClientSize=new Size(540,160),StartPosition=FormStartPosition.CenterParent,FormBorderStyle=FormBorderStyle.FixedDialog,MaximizeBox=false}) {
+            var address=new TextBox{Text="https://niyazisugarproxy-diagnostics.gyrogoalx.workers.dev/reports",Location=new Point(130,25),Width=385};
+            var key=new TextBox{Location=new Point(130,65),Width=385,UseSystemPasswordChar=true};
+            dialog.Controls.Add(new Label{Text="Gönderme adresi",Location=new Point(15,28),AutoSize=true});dialog.Controls.Add(address);
+            dialog.Controls.Add(new Label{Text="Bağlantı kodu",Location=new Point(15,68),AutoSize=true});dialog.Controls.Add(key);
+            var ok=new Button{Text="Kaydet",Location=new Point(415,115),DialogResult=DialogResult.OK};dialog.Controls.Add(ok);dialog.AcceptButton=ok;
+            if(dialog.ShowDialog(this)!=DialogResult.OK)return null;
+            var settings=new DiagnosticSettings{Endpoint=address.Text.Trim(),Key=key.Text.Trim()};Diagnostics.Save(settings);return settings;
+        }
+    }
+    void SendDiagnostics(object sender,EventArgs e) {
+        try {
+            var settings=Diagnostics.Load();if(settings==null)settings=SetupDiagnostics();if(settings==null)return;
+            var profiles=new List<ProxyItem>();foreach(ProxyItem p in proxies.Items)profiles.Add(p);
+            string report=Diagnostics.Clean(logs.Text,profiles).Replace(settings.Key,"[CONNECTION-CODE]");
+            if(String.IsNullOrWhiteSpace(report)){MessageBox.Show(this,"Henüz gönderilecek kayıt yok.");return;}
+            sendReport.Enabled=false;sendReport.Text="Gönderiliyor…";
+            var worker=new Thread(delegate() {
+                try {
+                    int number=Diagnostics.Send(settings,report);
+                    UI(delegate {sendReport.Enabled=true;sendReport.Text="Tanılama gönder";MessageBox.Show(this,"Gönderildi. Kayıt numarası: "+number+"\nSohbette bu numarayı yazabilirsin.","NiyazisugarProxy");});
+                }catch(Exception){UI(delegate {sendReport.Enabled=true;sendReport.Text="Tanılama gönder";MessageBox.Show(this,"Gönderilemedi. Servis bağlantısını kontrol edin; kayıt numarası oluşturulmadı.");});}
+            });worker.IsBackground=true;worker.Start();
+        }catch(Exception ex){Error(ex);}
     }
     void CheckUpdates(object sender,EventArgs e) {
         if(updateBusy || starting || engine!=null)return;

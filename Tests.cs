@@ -29,6 +29,8 @@ class Tests {
                 }
                 Console.WriteLine("Actual sing-box config validation passed with and without fallback.");return 0;
             }
+            string safe=Diagnostics.Clean("username demo password SECRET\n"+Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)+"\nAuthorization: Bearer TEST",new ProxyItem[]{new ProxyItem{User="demo",Password="SECRET"}});
+            Assert(!safe.Contains("SECRET")&&!safe.Contains("demo")&&!safe.Contains("Bearer TEST"));
             Assert(RoutingConfig.ValidateFallback("")==null);
             Assert(RoutingConfig.ValidateFallback("185.128.114.39")=="185.128.114.39/32");
             Reject(delegate {RoutingConfig.ValidateFallback("bad-ip");});

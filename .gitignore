@@ -6,3 +6,9 @@ engine/
 *.incoming
 *.log
 *proxy-listesi*
+
+*.dpapi
+.dev.vars
+.env*
+node_modules/
+.wrangler/

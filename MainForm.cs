@@ -191,7 +191,7 @@ class MainForm : Form {
     }
     DiagnosticSettings SetupDiagnostics() {
         using(Form dialog=new Form {Text="Tanılama bağlantısını kur",ClientSize=new Size(540,160),StartPosition=FormStartPosition.CenterParent,FormBorderStyle=FormBorderStyle.FixedDialog,MaximizeBox=false}) {
-            var address=new TextBox{Location=new Point(130,25),Width=385};
+            var address=new TextBox{Text="https://niyazisugarproxy-diagnostics.gyrogoalx.workers.dev/reports",Location=new Point(130,25),Width=385};
             var key=new TextBox{Location=new Point(130,65),Width=385,UseSystemPasswordChar=true};
             dialog.Controls.Add(new Label{Text="Gönderme adresi",Location=new Point(15,28),AutoSize=true});dialog.Controls.Add(address);
             dialog.Controls.Add(new Label{Text="Bağlantı kodu",Location=new Point(15,68),AutoSize=true});dialog.Controls.Add(key);

@@ -11,7 +11,10 @@ class Tests {
         });
     }
     static void Reject(Action action) {try {action();}catch(Exception){return;}throw new Exception("Expected rejection");}
-    public static int Main(string[] args) {
+    static System.Windows.Forms.Button FindButton(System.Windows.Forms.Control root,string text){foreach(System.Windows.Forms.Control c in root.Controls){var b=c as System.Windows.Forms.Button;if(b!=null&&b.Text==text)return b;var result=FindButton(c,text);if(result!=null)return result;}return null;}
+    static System.Windows.Forms.ComboBox FindTheme(System.Windows.Forms.Control root){foreach(System.Windows.Forms.Control c in root.Controls){var b=c as System.Windows.Forms.ComboBox;if(b!=null&&b.Items.Contains("Karanlık"))return b;var result=FindTheme(c);if(result!=null)return result;}return null;}
+    static void SavePreview(System.Windows.Forms.Form form,string path){using(var bitmap=new System.Drawing.Bitmap(form.Width,form.Height)){form.DrawToBitmap(bitmap,form.ClientRectangle);bitmap.Save(path);}}
+    [STAThread] public static int Main(string[] args) {
         try {
             if(args.Length==2&&args[0]=="--config-check") {
                 var adapter=NetworkRoutes.Select();
@@ -27,7 +30,46 @@ class Tests {
                         }
                     }finally {File.Delete(checkFile);}
                 }
+                foreach(bool shared in new bool[]{false,true}) {
+                    var dual=RoutingConfig.BuildMany(new ClientRoute[]{new ClientRoute{Proxy=new ProxyItem{Host="192.0.2.1",Port=1080},Patterns=new string[]{"(?i)^C:\\\\Games1\\\\client.exe$"},IP="203.0.113.8",Tag="game-proxy-1"},new ClientRoute{Proxy=new ProxyItem{Host="192.0.2.2",Port=1081},Patterns=new string[]{"(?i)^C:\\\\Games2\\\\client.exe$"},IP=shared?"203.0.113.8":"203.0.113.9",Tag="game-proxy-2"}},adapter.alias);
+                    string dualFile=Path.GetTempFileName();try{File.WriteAllText(dualFile,new JavaScriptSerializer().Serialize(dual));using(var process=System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(args[1],"check -c "+Updates.Quote(dualFile)){UseShellExecute=false,RedirectStandardError=true,RedirectStandardOutput=true,CreateNoWindow=true})){var err=process.StandardError.ReadToEndAsync();var output=process.StandardOutput.ReadToEndAsync();if(!process.WaitForExit(15000)){process.Kill();throw new Exception("Dual engine check timeout");}Console.WriteLine(err.GetAwaiter().GetResult()+output.GetAwaiter().GetResult());Assert(process.ExitCode==0);}}finally{File.Delete(dualFile);}
+                }
                 Console.WriteLine("Actual sing-box config validation passed with and without fallback.");return 0;
+            }
+            string prefDir=Path.Combine(Path.GetTempPath(),"PreferencesTest-"+Guid.NewGuid().ToString("N"));
+            try {
+                var pref=new AppPreferences();pref.PutServer("Test server","203.0.113.5");pref.PutServer("TEST SERVER","203.0.113.6");
+                Assert(pref.Servers.Count==2);pref.Light=true;pref.Accent=2;pref.SecondEnabled=true;pref.Slots[1].IP="203.0.113.6";
+                string prefFile=Path.Combine(prefDir,"preferences.json");pref.SaveTo(prefFile);var loaded=AppPreferences.LoadFrom(prefFile);
+                Assert(loaded.Light&&loaded.Accent==2&&loaded.SecondEnabled&&loaded.Slots[1].IP=="203.0.113.6");Assert(loaded.Servers[1].IP=="203.0.113.6");
+                loaded.Light=false;loaded.SaveTo(prefFile);Assert(!AppPreferences.LoadFrom(prefFile).Light);
+                Reject(delegate{pref.PutServer("Invalid","not-ip");});
+            }finally{if(Directory.Exists(prefDir))Directory.Delete(prefDir,true);}
+            var pair=new ClientRoute[]{
+                new ClientRoute{Proxy=new ProxyItem{Host="192.0.2.1",Port=1080,User="one",Password="test"},Patterns=new string[]{"(?i)^C:\\\\Games1\\\\client.exe$"},IP="203.0.113.8",Tag="game-proxy-1"},
+                new ClientRoute{Proxy=new ProxyItem{Host="192.0.2.2",Port=1081,User="two",Password="test"},Patterns=new string[]{"(?i)^C:\\\\Games2\\\\client.exe$"},IP="203.0.113.8",Tag="game-proxy-2"}
+            };
+            var multiple=RoutingConfig.BuildMany(pair,"Ethernet");
+            Assert(((object[])multiple["outbounds"]).Length==3);Assert(RoutingConfig.SharedIP(pair));
+            var ruleArray=(object[])((Dictionary<string,object>)multiple["route"])["rules"];
+            var tail=(Dictionary<string,object>)ruleArray[ruleArray.Length-1];Assert((string)tail["action"]=="reject");
+            Assert((string)((Dictionary<string,object>)ruleArray[2])["outbound"]=="game-proxy-1");
+            Assert((string)((Dictionary<string,object>)ruleArray[5])["outbound"]=="game-proxy-2");
+            pair[1].IP="203.0.113.9";multiple=RoutingConfig.BuildMany(pair,"Ethernet");ruleArray=(object[])((Dictionary<string,object>)multiple["route"])["rules"];
+            Assert((string)((Dictionary<string,object>)ruleArray[ruleArray.Length-1])["outbound"]=="game-proxy-2");
+            pair[1].Patterns=pair[0].Patterns;Reject(delegate{RoutingConfig.BuildMany(pair,"Ethernet");});
+            Console.WriteLine("Saved server/theme roundtrip and dual-client routing/conflict tests passed.");
+            if(args.Length==1&&args[0]=="--ui-smoke") {
+                System.Windows.Forms.Application.EnableVisualStyles();
+                using(var form=new MainForm(true)){
+                    form.Show();System.Windows.Forms.Application.DoEvents();Assert(form.ClientSize.Width==1000);
+                    SavePreview(form,"ui-preview.png");
+                    FindButton(form,"Ayarlar").PerformClick();System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-settings.png");
+                    FindButton(form,"Loglar").PerformClick();System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-logs.png");
+                    FindButton(form,"Ayarlar").PerformClick();var themeBox=FindTheme(form);Assert(themeBox!=null);themeBox.SelectedIndex=1;System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-light.png");
+                    form.Close();
+                }
+                Console.WriteLine("Windows UI construction and screenshot passed.");
             }
             string safe=Diagnostics.Clean("username demo password SECRET\n"+Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)+"\nAuthorization: Bearer TEST",new ProxyItem[]{new ProxyItem{User="demo",Password="SECRET"}});
             Assert(!safe.Contains("SECRET")&&!safe.Contains("demo")&&!safe.Contains("Bearer TEST"));
@@ -75,3 +117,4 @@ class Tests {
         }catch(Exception e){Console.Error.WriteLine(e);return 1;}
     }
 }
+

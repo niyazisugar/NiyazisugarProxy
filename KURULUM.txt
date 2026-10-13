@@ -48,3 +48,15 @@ Surec erisim engeli kaldirilmaz. Diger serverler icin dogrulanmis IP gerekir.
 Windows Masaustu konumunda NiyazisugarProxy-Loglar klasoru ve TXT kaydi
 olusturur. Log klasorunu ac dugmesiyle dosyaya ulasip sohbete yukleyin.
 Sifreler temizlenir; kayitlar internete otomatik gonderilmez.
+
+
+v1.2.0
+- Ayarlar: karanlık/açık tema ve Mor/Mavi/Yeşil vurgu.
+- Sunucu IP'sini girip IP'yi kaydet ile Sezar2 gibi bir ad verin.
+- Sonraki açılışta sunucu IP'si, client yolları ve tema hatırlanır.
+- 2. client etkin: ayrı oyun klasörü, ayrı proxy ve ayrı Oyunu aç düğmesi.
+- Aynı sunucu IP'sine iki farklı proxy için süreç eşleşmesi zorunludur.
+  Koruma süreç okumayı engellerse iki client modu çalışmayabilir.
+  Süreci bulunamayan ortak sunucu TCP bağlantıları engellenir.
+- Aynı EXE/BIN yolu iki farklı proxyye atanamaz; ayrı klasörleri seçin.
+- Loglar masaüstünde NiyazisugarProxy-Loglar klasöründedir.

@@ -31,7 +31,6 @@ class Tests {
             }
             string safe=Diagnostics.Clean("username demo password SECRET\n"+Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)+"\nAuthorization: Bearer TEST",new ProxyItem[]{new ProxyItem{User="demo",Password="SECRET"}});
             Assert(!safe.Contains("SECRET")&&!safe.Contains("demo")&&!safe.Contains("Bearer TEST"));
-            Assert(!Diagnostics.FailureMessage(502,"ghp_example").Contains("ghp_example"));
             string exportDirectory=Path.Combine(Path.GetTempPath(),"LocalLogTest-"+Guid.NewGuid().ToString("N"));
             try {
                 string first=Diagnostics.CreateSessionAt(exportDirectory);

@@ -1,4 +1,4 @@
-name: Validate diagnostics feature
+name: Validate local diagnostics
 on:
   push:
     branches: [diagnostics-relay]
@@ -9,17 +9,6 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Compile Windows app and test redaction
+      - name: Compile app and verify offline local logs
         shell: pwsh
         run: ./build.ps1
-      - name: Real Windows HTTPS transport check without credentials
-        shell: pwsh
-        run: |
-          & ./dist/Tests.exe --transport-smoke
-          if ($LASTEXITCODE -ne 0) { throw 'Windows HTTPS transport check failed' }
-  relay:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Test private-only relay without production credentials
-        run: node --test diagnostics-relay/worker.test.mjs

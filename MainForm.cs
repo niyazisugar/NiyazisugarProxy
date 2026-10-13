@@ -28,6 +28,7 @@ class MainForm : Form {
     ComboBox proxies=new ComboBox(); TextBox client=new TextBox(); TextBox logs=new TextBox();
     Label status=new Label(); Button load,add,select,connect,stop,launch,update,sendReport;
     UpdateRelease availableUpdate; bool updateBusy;
+    string localLogPath;
     TextBox serverIP=new TextBox();
     string launcherPath; string[] selectedFiles=new string[0];
     Process engine; string configFile; bool starting,closing,ready;
@@ -53,11 +54,11 @@ class MainForm : Form {
         Controls.Add(new Label {Text="IP girilirse o adrese giden tüm TCP bağlantıları proxy kullanır. Boş bırakılabilir.",AutoSize=true,Location=new Point(22,367)});
         logs.SetBounds(22,403,736,153); logs.Multiline=true; logs.ReadOnly=true; logs.ScrollBars=ScrollBars.Vertical;
         logs.BackColor=Color.FromArgb(23,15,37); logs.ForeColor=ForeColor; logs.Font=new Font("Consolas",9); logs.Anchor=AnchorStyles.Top|AnchorStyles.Bottom|AnchorStyles.Left|AnchorStyles.Right; Controls.Add(logs);
-        sendReport=Btn("Tanılama gönder",22,574,200,SendDiagnostics);
+        sendReport=Btn("Log klasörünü aç",22,574,230,OpenLogs);
         sendReport.Anchor=AnchorStyles.Bottom|AnchorStyles.Left;
-        var diagnosticOptions=Btn("Tanılama ayarları",232,574,200,delegate(object sender,EventArgs e){try{SetupDiagnostics();}catch(Exception ex){Error(ex);}});
-        diagnosticOptions.Anchor=AnchorStyles.Bottom|AnchorStyles.Left;
         FormClosing+=OnClosing;
+        try {localLogPath=Diagnostics.CreateSession();Log("Yerel log kaydı başladı.");}
+        catch(Exception ex){logs.AppendText("Log klasörü oluşturulamadı: "+ex.Message+Environment.NewLine);}
     }
     Button Btn(string text,int x,int y,int width,EventHandler action) {
         Button b=new Button {Text=text,Location=new Point(x,y),Size=new Size(width,36),FlatStyle=FlatStyle.Flat,BackColor=Color.FromArgb(60,44,80),ForeColor=ForeColor};
@@ -69,6 +70,13 @@ class MainForm : Form {
         foreach(ProxyItem p in proxies.Items) {
             if(!String.IsNullOrEmpty(p.Password))text=text.Replace(p.Password,"[gizli]");
             if(!String.IsNullOrEmpty(p.User))text=text.Replace(p.User,"[gizli]");
+        }
+        if(localLogPath!=null) {
+            try {
+                var profiles=new List<ProxyItem>();foreach(ProxyItem p in proxies.Items)profiles.Add(p);
+                if(new FileInfo(localLogPath).Length>10*1024*1024)localLogPath=Diagnostics.CreateSession();
+                Diagnostics.Append(localLogPath,text,profiles);
+            }catch(Exception ex){localLogPath=null;logs.AppendText("Log dosyasına yazılamadı: "+ex.Message+Environment.NewLine);}
         }
         if(logs.TextLength>120000)logs.Clear(); logs.AppendText(text.TrimEnd()+Environment.NewLine);
     }
@@ -191,30 +199,14 @@ class MainForm : Form {
         try {if(engine!=null&&!engine.HasExited){engine.Kill();engine.WaitForExit(5000);}}catch(Exception){}
         CleanConfig();
     }
-    DiagnosticSettings SetupDiagnostics() {
-        using(Form dialog=new Form {Text="Tanılama bağlantısını kur",ClientSize=new Size(540,160),StartPosition=FormStartPosition.CenterParent,FormBorderStyle=FormBorderStyle.FixedDialog,MaximizeBox=false}) {
-            var address=new TextBox{Text="https://niyazisugarproxy-diagnostics.gyrogoalx.workers.dev/reports",Location=new Point(130,25),Width=385};
-            var key=new TextBox{Location=new Point(130,65),Width=385,UseSystemPasswordChar=true};
-            dialog.Controls.Add(new Label{Text="Gönderme adresi",Location=new Point(15,28),AutoSize=true});dialog.Controls.Add(address);
-            dialog.Controls.Add(new Label{Text="Bağlantı kodu",Location=new Point(15,68),AutoSize=true});dialog.Controls.Add(key);
-            var ok=new Button{Text="Kaydet",Location=new Point(415,115),DialogResult=DialogResult.OK};dialog.Controls.Add(ok);dialog.AcceptButton=ok;
-            if(dialog.ShowDialog(this)!=DialogResult.OK)return null;
-            var settings=new DiagnosticSettings{Endpoint=address.Text.Trim(),Key=key.Text.Trim()};Diagnostics.Save(settings);return settings;
-        }
-    }
-    void SendDiagnostics(object sender,EventArgs e) {
+    void OpenLogs(object sender,EventArgs e) {
         try {
-            var settings=Diagnostics.Load();if(settings==null)settings=SetupDiagnostics();if(settings==null)return;
-            var profiles=new List<ProxyItem>();foreach(ProxyItem p in proxies.Items)profiles.Add(p);
-            string report=Diagnostics.Clean(logs.Text,profiles).Replace(settings.Key,"[CONNECTION-CODE]");
-            if(String.IsNullOrWhiteSpace(report)){MessageBox.Show(this,"Henüz gönderilecek kayıt yok.");return;}
-            sendReport.Enabled=false;sendReport.Text="Gönderiliyor…";
-            var worker=new Thread(delegate() {
-                try {
-                    int number=Diagnostics.Send(settings,report);
-                    UI(delegate {sendReport.Enabled=true;sendReport.Text="Tanılama gönder";MessageBox.Show(this,"Gönderildi. Kayıt numarası: "+number+"\nSohbette bu numarayı yazabilirsin.","NiyazisugarProxy");});
-                }catch(Exception ex){string detail=ex.Message.Replace(settings.Key,"[HIDDEN]");UI(delegate {sendReport.Enabled=true;sendReport.Text="Tanılama gönder";MessageBox.Show(this,detail,"Tanılama gönderimi");});}
-            });worker.IsBackground=true;worker.Start();
+            if(localLogPath==null) {
+                localLogPath=Diagnostics.CreateSession();
+                var profiles=new List<ProxyItem>();foreach(ProxyItem p in proxies.Items)profiles.Add(p);
+                Diagnostics.Append(localLogPath,logs.Text,profiles);
+            }
+            Process.Start(new ProcessStartInfo{FileName=Path.GetDirectoryName(localLogPath),UseShellExecute=true});
         }catch(Exception ex){Error(ex);}
     }
     void CheckUpdates(object sender,EventArgs e) {

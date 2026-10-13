@@ -13,14 +13,6 @@ class Tests {
     static void Reject(Action action) {try {action();}catch(Exception){return;}throw new Exception("Expected rejection");}
     public static int Main(string[] args) {
         try {
-            if(args.Length==1&&args[0]=="--transport-smoke") {
-                var response=NativeHttp.Send("https://niyazisugarproxy-diagnostics.gyrogoalx.workers.dev/reports","GET",null,null);
-                Assert(response.Status==405);
-                Assert(response.Body.Contains("post_required"));
-                Console.WriteLine("Real Windows WinHTTP HTTPS request returned expected 405 without credentials.");return 0;
-            }
-            Assert(NativeHttp.Failure(unchecked((int)0x80072F8F)).Contains("TLS/sertifika"));
-            Assert(NativeHttp.Failure(unchecked((int)0x80072EE7)).Contains("DNS"));
             if(args.Length==2&&args[0]=="--config-check") {
                 var adapter=NetworkRoutes.Select();
                 foreach(string fallback in new string[]{"","185.128.114.39"}) {
@@ -39,9 +31,21 @@ class Tests {
             }
             string safe=Diagnostics.Clean("username demo password SECRET\n"+Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)+"\nAuthorization: Bearer TEST",new ProxyItem[]{new ProxyItem{User="demo",Password="SECRET"}});
             Assert(!safe.Contains("SECRET")&&!safe.Contains("demo")&&!safe.Contains("Bearer TEST"));
-            Assert(Diagnostics.FailureMessage(401,"unauthorized").Contains("INGEST_KEY"));
-            Assert(Diagnostics.FailureMessage(502,"github_write_failed").Contains("Issues"));
             Assert(!Diagnostics.FailureMessage(502,"ghp_example").Contains("ghp_example"));
+            string exportDirectory=Path.Combine(Path.GetTempPath(),"LocalLogTest-"+Guid.NewGuid().ToString("N"));
+            try {
+                string first=Diagnostics.CreateSessionAt(exportDirectory);
+                string second=Diagnostics.CreateSessionAt(exportDirectory);
+                Assert(first!=second);
+                Diagnostics.Append(first,"demo SECRET authorization: Bearer FAKE",new ProxyItem[]{new ProxyItem{User="demo",Password="SECRET"}});
+                string saved=File.ReadAllText(first);
+                Assert(!saved.Contains("demo")&&!saved.Contains("SECRET")&&!saved.Contains("Bearer FAKE"));
+                string before=saved;
+                Diagnostics.Append(first,"second log line",new ProxyItem[0]);
+                Assert(File.ReadAllText(first).StartsWith(before));
+                Assert(File.ReadAllText(first).Contains("second log line"));
+                Console.WriteLine("Local log creation, append and secret-redaction tests passed.");
+            }finally{if(Directory.Exists(exportDirectory))Directory.Delete(exportDirectory,true);}
             Assert(RoutingConfig.ValidateFallback("")==null);
             Assert(RoutingConfig.ValidateFallback("185.128.114.39")=="185.128.114.39/32");
             Reject(delegate {RoutingConfig.ValidateFallback("bad-ip");});

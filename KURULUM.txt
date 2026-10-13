@@ -60,3 +60,7 @@ v1.2.0
   Süreci bulunamayan ortak sunucu TCP bağlantıları engellenir.
 - Aynı EXE/BIN yolu iki farklı proxyye atanamaz; ayrı klasörleri seçin.
 - Loglar masaüstünde NiyazisugarProxy-Loglar klasöründedir.
+
+v1.2.1: Pencereyi kenarlarından/köşelerinden sürükleyerek boyutlandırın.
+Son boyut hatırlanır. Küçük pencerede client alanları alt alta geçer;
+iki client etkinse aşağı kaydırarak ikinci client ve bağlantı düğmelerine ulaşın.

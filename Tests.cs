@@ -13,6 +13,14 @@ class Tests {
     static void Reject(Action action) {try {action();}catch(Exception){return;}throw new Exception("Expected rejection");}
     public static int Main(string[] args) {
         try {
+            if(args.Length==1&&args[0]=="--transport-smoke") {
+                var response=NativeHttp.Send("https://niyazisugarproxy-diagnostics.gyrogoalx.workers.dev/reports","GET",null,null);
+                Assert(response.Status==405);
+                Assert(response.Body.Contains("post_required"));
+                Console.WriteLine("Real Windows WinHTTP HTTPS request returned expected 405 without credentials.");return 0;
+            }
+            Assert(NativeHttp.Failure(unchecked((int)0x80072F8F)).Contains("TLS/sertifika"));
+            Assert(NativeHttp.Failure(unchecked((int)0x80072EE7)).Contains("DNS"));
             if(args.Length==2&&args[0]=="--config-check") {
                 var adapter=NetworkRoutes.Select();
                 foreach(string fallback in new string[]{"","185.128.114.39"}) {

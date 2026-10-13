@@ -28,9 +28,6 @@ static class Diagnostics {
         byte[] clear=ProtectedData.Unprotect(File.ReadAllBytes(SettingsFile),null,DataProtectionScope.CurrentUser);
         try{return new JavaScriptSerializer().Deserialize<DiagnosticSettings>(Encoding.UTF8.GetString(clear));}finally{Array.Clear(clear,0,clear.Length);}
     }
-    class TimedClient:WebClient {
-        protected override WebRequest GetWebRequest(Uri address){var r=base.GetWebRequest(address);r.Timeout=20000;var http=r as HttpWebRequest;if(http!=null)http.AllowAutoRedirect=false;return r;}
-    }
     public static string FailureMessage(int status,string code) {
         switch(code) {
             case "unauthorized": return "HTTP 401: Bağlantı kodu uyuşmuyor. Tanılama ayarlarına Cloudflare INGEST_KEY değerini tekrar girin.";
@@ -45,27 +42,21 @@ static class Diagnostics {
         }
     }
     public static int Send(DiagnosticSettings settings,string report) {
-        ServicePointManager.SecurityProtocol=SecurityProtocolType.Tls12;
-        using(var c=new TimedClient()) {
-            c.Encoding=Encoding.UTF8;c.Headers["Content-Type"]="application/json";c.Headers["Authorization"]="Bearer "+settings.Key;
-            var payload=new Dictionary<string,object>{{"version",Updates.Current.ToString(3)},{"log",report}};
-            string result;
-            try {result=c.UploadString(settings.Endpoint,"POST",new JavaScriptSerializer().Serialize(payload));}
-            catch(WebException ex) {
-                var response=ex.Response as HttpWebResponse;
-                if(response==null)throw new Exception("Servise ulaşılamadı ("+ex.Status+"). İnternet veya TLS bağlantısını kontrol edin.");
-                int status=(int)response.StatusCode;string code="";
-                using(response)try {
-                    using(var reader=new StreamReader(response.GetResponseStream())) {
-                        char[] buffer=new char[4096];int count=reader.ReadBlock(buffer,0,buffer.Length);
-                        var error=new JavaScriptSerializer().Deserialize<Dictionary<string,object>>(new string(buffer,0,count));
-                        object value;if(error.TryGetValue("error",out value))code=value as string;
-                    }
-                }catch(Exception){}
-                throw new Exception(FailureMessage(status,code));
-            }
-            var receipt=new JavaScriptSerializer().Deserialize<Dictionary<string,object>>(result);
-            int number=Convert.ToInt32(receipt["number"]);if(number<=0)throw new Exception("Gönderme sonucu geçersiz.");return number;
+        var payload=new Dictionary<string,object>{{"version",Updates.Current.ToString(3)},{"log",report}};
+        var response=NativeHttp.Send(settings.Endpoint,"POST",settings.Key,new JavaScriptSerializer().Serialize(payload));
+        if(response.Status!=201) {
+            string code="";
+            try {
+                var error=new JavaScriptSerializer().Deserialize<Dictionary<string,object>>(response.Body);
+                object value;if(error.TryGetValue("error",out value))code=value as string;
+            }catch(Exception){}
+            throw new Exception(FailureMessage(response.Status,code));
         }
+        try {
+            var receipt=new JavaScriptSerializer().Deserialize<Dictionary<string,object>>(response.Body);
+            int number=Convert.ToInt32(receipt["number"]);
+            if(number<=0)throw new Exception();
+            return number;
+        }catch(Exception){throw new Exception("Servis cevabı geçersiz; kayıt oluşturulduğu doğrulanamadı.");}
     }
 }

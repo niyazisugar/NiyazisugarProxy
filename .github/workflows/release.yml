@@ -1,0 +1,58 @@
+name: Windows build and release
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: windows-release
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile app and run update tests
+        shell: pwsh
+        run: ./build.ps1
+      - name: Package official proxy engine
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $r = gh api repos/SagerNet/sing-box/releases/tags/v1.12.25 | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Engine release lookup failed' }
+          $a = $r.assets | Where-Object name -eq 'sing-box-1.12.25-windows-amd64.zip'
+          if (!$a -or $a.digest -notmatch '^sha256:[a-fA-F0-9]{64}$') { throw 'Engine checksum missing' }
+          Invoke-WebRequest $a.browser_download_url -OutFile engine.zip
+          $hash = (Get-FileHash engine.zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($hash -ne $a.digest.Substring(7).ToLowerInvariant()) { throw 'Engine checksum mismatch' }
+          Expand-Archive engine.zip engine
+          $bin = Get-ChildItem engine -Filter sing-box.exe -Recurse | Select-Object -First 1
+          if (!$bin) { throw 'Engine executable missing' }
+          Copy-Item $bin.FullName dist/sing-box.exe
+          Invoke-WebRequest 'https://raw.githubusercontent.com/SagerNet/sing-box/v1.12.25/LICENSE' -OutFile dist/SING-BOX-LICENSE.txt
+          Copy-Item KURULUM.txt dist/
+          Remove-Item dist/Tests.exe
+          Compress-Archive -Path dist/* -DestinationPath NiyazisugarProxy-Windows-x64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: NiyazisugarProxy-Windows-x64
+          path: |
+            dist/NiyazisugarProxy.exe
+            NiyazisugarProxy-Windows-x64.zip
+      - name: Publish version if new
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $version = [System.Diagnostics.FileVersionInfo]::GetVersionInfo((Resolve-Path dist/NiyazisugarProxy.exe)).FileVersion
+          $parts = $version.Split('.')
+          $tag = 'v' + ($parts[0..2] -join '.')
+          gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null
+          if ($LASTEXITCODE -eq 0) { Write-Host 'Version already published; assets were not replaced.'; exit 0 }
+          gh release create $tag dist/NiyazisugarProxy.exe NiyazisugarProxy-Windows-x64.zip --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "NiyazisugarProxy $tag" --notes 'Windows desktop client with GitHub update checks. First installation: download and extract the Windows-x64 ZIP.'
+          if ($LASTEXITCODE -ne 0) { throw 'Release failed' }

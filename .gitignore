@@ -1,0 +1,8 @@
+dist/
+engine/
+*.zip
+*.exe
+*.previous
+*.incoming
+*.log
+*proxy-listesi*

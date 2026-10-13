@@ -1,0 +1,37 @@
+NIYAZISUGARPROXY — Windows x64
+
+1. ZIP'in tamamini yeni bir klasore cikartin.
+2. NiyazisugarProxy.exe'yi acin. Yonetici iznini kabul edin.
+3. Proxy listenizi Liste yukle ile secin, oyun launcher .exe'sini secin.
+4. Baglan, ardindan Oyunu ac.
+Python veya tarayici gerekmez. .NET Framework 4.x gerekir.
+Pakette sing-box 1.12.25 windows-amd64 motoru bulunur (resmi SagerNet surumu).
+
+Uygulama acilista GitHub'dan yeni surumu kontrol eder.
+Guncelle dugmesi varsa oyunlari kapatip Baglantiyi Durdur ile sonlandirin.
+Guncelle'ye basin. EXE'nin SHA256 degeri dogrulanir; uygulama yeniden baslar.
+Internet yoksa mevcut uygulamayi kullanabilirsiniz.
+Guncelleme yalnizca NiyazisugarProxy.exe'yi degistirir; sing-box ve proxy
+listeleri korunur. Son EXE NiyazisugarProxy.exe.previous olarak yedeklenir.
+Guncelleme acilista uyumsuzsa bu yedegi kopyalayip .exe olarak kullanabilirsiniz.
+Motor degisikligi gereken surumler ayri kurulum paketi gerektirir.
+
+YONLENDIRME
+Secilen launcher ve ayni klasordeki metin2client.bin / sezar2client.bin
+varsa tam dosya yollarina gore proxy kuralina dahildir.
+Baska klasordeki diger sunucu clientleri direct cikar.
+Baska isimli veya alt klasordeki oyun islemleri otomatik eslesmez.
+Loglarda oyun baglantilarinin game-proxy ciktigini dogrulayin.
+Motor hazir yazisi oyunun proxy baglantisini dogrulamaz.
+
+Anti-cheat ve gercek oyun baglantisi test edilmedi.
+Yerel TUN sistemi diger uygulamalari direct cikisindan isleyebilir.
+DNS sistem baglantisini kullanir. Kill switch yoktur; motor kapanirsa oyun
+normal IP ile baglanabilir. Durdurmadan once oyunu kapatin.
+Gecici config proxy sifresini icerir; normal kapanista silinir.
+Ani kesintide TEMP klasorunde niyazisugarproxy/metinproxy JSON dosyasi kalabilir.
+Proxy adreslerinin SOCKS5 olmasi gerekir; UDP icin sunucu destegi gerekir.
+
+Kaynak: https://github.com/niyazisugar/NiyazisugarProxy
+Motor kaynagi: https://github.com/SagerNet/sing-box/tree/v1.12.25
+Motor lisansi: SING-BOX-LICENSE.txt

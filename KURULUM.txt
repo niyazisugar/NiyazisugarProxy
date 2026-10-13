@@ -43,3 +43,8 @@ uyarlandi. Sunucu IP alani istege baglidir; bosken surec yolu kurallari
 kullanilir. Sezar2 icin kaynak projedeki IP: 185.128.114.39. IP alanini
 doldurursaniz o IP'ye giden TUM uygulamalarin TCP baglantisi proxy kullanir.
 Surec erisim engeli kaldirilmaz. Diger serverler icin dogrulanmis IP gerekir.
+
+1.1.4: Otomatik tanilama gonderimi kaldirildi. Uygulama acilinca gercek
+Windows Masaustu konumunda NiyazisugarProxy-Loglar klasoru ve TXT kaydi
+olusturur. Log klasorunu ac dugmesiyle dosyaya ulasip sohbete yukleyin.
+Sifreler temizlenir; kayitlar internete otomatik gonderilmez.

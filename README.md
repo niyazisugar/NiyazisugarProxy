@@ -40,3 +40,7 @@ The Clientler, Ayarlar and Loglar pages share a rounded desktop interface. Choos
 Enable 2. client etkin to select a second proxy and launcher/EXE/BIN set. Use separate game folders. One sing-box TUN engine owns both SOCKS outbounds, so two independently competing TUN engines are not started. Process routes precede IP fallbacks. When an IP is configured, matched clients only proxy that destination; other destinations from that known process use direct routing.
 
 For two clients targeting the same server IP, process paths are required to distinguish their proxy assignments. Unknown TCP connections to that shared IP are rejected instead of silently sending both clients through the first proxy. Protected processes that cannot be resolved may therefore fail to connect in this mode; assigning two proxies by server IP alone cannot distinguish them. Separate folders identify the paths, but cannot force anti-cheat-protected process lookup to succeed. Two-client live game operation still requires testing on the user's PCs.
+
+## v1.2.1 — resizable window
+
+Drag any window edge or corner to resize. Default size is 840×650, minimum is 640×520. The last normal window size is saved locally and clamped to the current monitor work area on startup. Client cards use a stacked layout at narrow widths, the optional second card is hidden until enabled, and smaller pages scroll to keep all controls accessible.

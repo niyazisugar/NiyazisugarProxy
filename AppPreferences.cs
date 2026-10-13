@@ -6,6 +6,7 @@ using System.Web.Script.Serialization;
 class ServerProfile { public string Name {get;set;} public string IP {get;set;} public override string ToString(){return Name+" • "+IP;} }
 class SlotPreference {public string Launcher {get;set;} public string[] Files {get;set;} public string IP {get;set;} }
 class AppPreferences {
+    public int WindowWidth {get;set;} public int WindowHeight {get;set;}
     public bool Light {get;set;} public int Accent {get;set;} public bool SecondEnabled {get;set;}
     public List<ServerProfile> Servers {get;set;}
     public SlotPreference[] Slots {get;set;}

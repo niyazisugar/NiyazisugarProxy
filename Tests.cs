@@ -13,6 +13,7 @@ class Tests {
     static void Reject(Action action) {try {action();}catch(Exception){return;}throw new Exception("Expected rejection");}
     static System.Windows.Forms.Button FindButton(System.Windows.Forms.Control root,string text){foreach(System.Windows.Forms.Control c in root.Controls){var b=c as System.Windows.Forms.Button;if(b!=null&&b.Text==text)return b;var result=FindButton(c,text);if(result!=null)return result;}return null;}
     static System.Windows.Forms.ComboBox FindTheme(System.Windows.Forms.Control root){foreach(System.Windows.Forms.Control c in root.Controls){var b=c as System.Windows.Forms.ComboBox;if(b!=null&&b.Items.Contains("Karanlık"))return b;var result=FindTheme(c);if(result!=null)return result;}return null;}
+    static System.Windows.Forms.CheckBox FindSecond(System.Windows.Forms.Control root){foreach(System.Windows.Forms.Control c in root.Controls){var b=c as System.Windows.Forms.CheckBox;if(b!=null&&b.Text=="2. client etkin")return b;var result=FindSecond(c);if(result!=null)return result;}return null;}
     static void SavePreview(System.Windows.Forms.Form form,string path){using(var bitmap=new System.Drawing.Bitmap(form.Width,form.Height)){form.DrawToBitmap(bitmap,form.ClientRectangle);bitmap.Save(path);}}
     [STAThread] public static int Main(string[] args) {
         try {
@@ -36,12 +37,18 @@ class Tests {
                 }
                 Console.WriteLine("Actual sing-box config validation passed with and without fallback.");return 0;
             }
+            Assert(WindowGeometry.Restore(0,0,new System.Drawing.Size(1920,1080))==new System.Drawing.Size(840,650));
+            Assert(WindowGeometry.Restore(4000,4000,new System.Drawing.Size(1366,768))==new System.Drawing.Size(1326,728));
+            Assert(WindowGeometry.Restore(1,1,new System.Drawing.Size(1920,1080))==new System.Drawing.Size(640,520));
+            Assert(WindowGeometry.HitTest(new System.Drawing.Point(2,2),new System.Drawing.Size(840,650),10)==13);
+            Assert(WindowGeometry.HitTest(new System.Drawing.Point(839,649),new System.Drawing.Size(840,650),10)==17);
+            Assert(WindowGeometry.HitTest(new System.Drawing.Point(200,300),new System.Drawing.Size(840,650),10)==1);
             string prefDir=Path.Combine(Path.GetTempPath(),"PreferencesTest-"+Guid.NewGuid().ToString("N"));
             try {
                 var pref=new AppPreferences();pref.PutServer("Test server","203.0.113.5");pref.PutServer("TEST SERVER","203.0.113.6");
-                Assert(pref.Servers.Count==2);pref.Light=true;pref.Accent=2;pref.SecondEnabled=true;pref.Slots[1].IP="203.0.113.6";
+                Assert(pref.Servers.Count==2);pref.WindowWidth=720;pref.WindowHeight=560;pref.Light=true;pref.Accent=2;pref.SecondEnabled=true;pref.Slots[1].IP="203.0.113.6";
                 string prefFile=Path.Combine(prefDir,"preferences.json");pref.SaveTo(prefFile);var loaded=AppPreferences.LoadFrom(prefFile);
-                Assert(loaded.Light&&loaded.Accent==2&&loaded.SecondEnabled&&loaded.Slots[1].IP=="203.0.113.6");Assert(loaded.Servers[1].IP=="203.0.113.6");
+                Assert(loaded.WindowWidth==720&&loaded.WindowHeight==560);Assert(loaded.Light&&loaded.Accent==2&&loaded.SecondEnabled&&loaded.Slots[1].IP=="203.0.113.6");Assert(loaded.Servers[1].IP=="203.0.113.6");
                 loaded.Light=false;loaded.SaveTo(prefFile);Assert(!AppPreferences.LoadFrom(prefFile).Light);
                 Reject(delegate{pref.PutServer("Invalid","not-ip");});
             }finally{if(Directory.Exists(prefDir))Directory.Delete(prefDir,true);}
@@ -62,8 +69,11 @@ class Tests {
             if(args.Length==1&&args[0]=="--ui-smoke") {
                 System.Windows.Forms.Application.EnableVisualStyles();
                 using(var form=new MainForm(true)){
-                    form.Show();System.Windows.Forms.Application.DoEvents();Assert(form.ClientSize.Width==1000);
+                    form.Show();System.Windows.Forms.Application.DoEvents();Assert(form.ClientSize.Width<=840);
                     SavePreview(form,"ui-preview.png");
+                    form.ClientSize=new System.Drawing.Size(640,520);System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-compact.png");Assert(form.ClientSize.Width==640);
+                    FindSecond(form).Checked=true;System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-two-compact.png");
+                    form.ClientSize=new System.Drawing.Size(1000,780);System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-large.png");
                     FindButton(form,"Ayarlar").PerformClick();System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-settings.png");
                     FindButton(form,"Loglar").PerformClick();System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-logs.png");
                     FindButton(form,"Ayarlar").PerformClick();var themeBox=FindTheme(form);Assert(themeBox!=null);themeBox.SelectedIndex=1;System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-light.png");

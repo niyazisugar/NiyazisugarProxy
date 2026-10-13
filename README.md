@@ -50,3 +50,7 @@ Drag any window edge or corner to resize. Default size is 840×650, minimum is 6
 Each card has Bağlan, Durdur and Proxy ekle. While client 1 is active, enable client 2, choose its files/server/proxy and connect it independently. Client 2 updates watched local sing-box rule files without restarting the TUN engine. Separate loopback TCP SOCKS bridges keep established upstream sessions on their original proxy; stopping one bridge closes only that slot's sessions. Only TCP is supported by these bridges; matching non-TCP game traffic is rejected.
 
 For shared server IPs, unknown-process TCP connections must be rejected to prevent both clients silently using the first proxy. Existing TCP sessions are preserved, but protected processes may be unable to create/recreate connections when both slots are active. A shared-IP warning explains this before activating the second slot. The app cannot make protected process lookup succeed or guarantee Metin2 auto-hunt compatibility without a live game test. Runtime rule reload is asynchronous and may take a few seconds.
+
+## v1.3.1 — remember proxy lists
+
+Imported and manually added proxies, including credentials and selected proxy indices, are stored atomically in a DPAPI CurrentUser encrypted file at `%LOCALAPPDATA%\NiyazisugarProxy\proxies.dat`. Startup restores the list on this PC/Windows account; application updates do not replace it. A corrupt or unreadable file is left untouched and logged. UI preview tests do not read or write the real proxy vault.

@@ -71,3 +71,8 @@ v1.3.0: Her clientin kendi Bağlan / Durdur / Proxy ekle düğmesi vardır.
 Aynı sunucu IP'sinde süreç okumayı engelleyen koruma, yeni/yeniden bağlantıları
 engelleyebilir. Mevcut TCP bağlantıları korunur; oyun üzerinde test gereklidir.
 Bu sürümde client köprüleri TCP destekler; UDP client trafiği desteklenmez.
+
+v1.3.1: Proxy listesi ve seçilen proxy otomatik kaydedilir.
+Kapatıp açınca liste geri gelir. İlk güncellemeden sonra listeyi bir kez yükleyin.
+Kayıt bu bilgisayardaki Windows hesabına bağlı şifrelemeyle korunur.
+İkinci client kullanmayacaksanız 2. client etkin seçeneğini kapalı bırakın.

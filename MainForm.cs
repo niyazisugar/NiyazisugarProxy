@@ -57,7 +57,7 @@ class MainForm : Form {
         header.Controls.Add(new Label{Text="PROXY  /  v"+Updates.Current.ToString(3),AutoSize=true,Location=new Point(29,53)});
         header.MouseDown+=DragWindow;foreach(Control c in header.Controls)c.MouseDown+=DragWindow;
         var minimize=MakeButton("—",header,890,20,40,delegate{WindowState=FormWindowState.Minimized;});
-        var close=MakeButton("×",header,936,20,40,delegate{Close();});
+        var close=MakeButton("×",header,936,20,40,delegate{Close();});minimize.TabStop=false;close.TabStop=false;
         tabs.SetBounds(22,145,956,613);tabs.Font=Font;Controls.Add(tabs);
         var dashboard=new Panel{Dock=DockStyle.Fill};var settings=new Panel{Dock=DockStyle.Fill};var activity=new Panel{Dock=DockStyle.Fill};
         pages=new Panel[]{dashboard,settings,activity};tabs.Controls.AddRange(pages);
@@ -121,8 +121,8 @@ class MainForm : Form {
     [System.Runtime.InteropServices.DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr handle,int msg,int wparam,int lparam);
     void DragWindow(object sender,MouseEventArgs e){if(e.Button==MouseButtons.Left){ReleaseCapture();SendMessage(Handle,0xA1,2,0);}}
     void RoundWindow(){using(var shape=RoundedPanel.Shape(ClientRectangle,20)){var old=Region;Region=new Region(shape);if(old!=null)old.Dispose();}}
-    void ApplyTheme(){if(theme.SelectedIndex<0)return;bool light=theme.SelectedIndex==1;Color background=light?Color.FromArgb(239,241,247):Color.FromArgb(15,18,27);Color card=light?Color.White:Color.FromArgb(25,30,43);Color field=light?Color.FromArgb(231,235,244):Color.FromArgb(35,42,59);Color foreground=light?Color.FromArgb(30,36,50):Color.FromArgb(229,235,247);Color tint=accent.SelectedIndex==1?Color.FromArgb(50,120,223):accent.SelectedIndex==2?Color.FromArgb(30,148,111):Color.FromArgb(115,81,217);ThemeControl(this,background,card,field,foreground,tint);for(int i=0;i<navigation.Length;i++)navigation[i].BackColor=i==selectedPage?tint:field;Invalidate(true);}
-    void ThemeControl(Control root,Color background,Color card,Color field,Color foreground,Color tint){root.ForeColor=foreground;root.BackColor=root is RoundedPanel?card:root is Button?tint:root is TextBox||root is ComboBox?field:background;var panel=root as RoundedPanel;if(panel!=null){panel.Surface=card;panel.Border=field;}foreach(Control child in root.Controls)ThemeControl(child,root is RoundedPanel?card:background,card,field,foreground,tint);}
+    void ApplyTheme(){if(theme.SelectedIndex<0)return;bool light=theme.SelectedIndex==1;Color background=light?Color.FromArgb(239,241,247):Color.FromArgb(15,18,27);Color card=light?Color.White:Color.FromArgb(25,30,43);Color field=light?Color.FromArgb(231,235,244):Color.FromArgb(35,42,59);Color foreground=light?Color.FromArgb(30,36,50):Color.FromArgb(229,235,247);Color tint=accent.SelectedIndex==1?Color.FromArgb(50,120,223):accent.SelectedIndex==2?Color.FromArgb(30,148,111):Color.FromArgb(115,81,217);ThemeControl(this,background,card,field,foreground,tint);for(int i=0;i<navigation.Length;i++){navigation[i].BackColor=i==selectedPage?tint:field;navigation[i].ForeColor=i==selectedPage?Color.White:foreground;}Invalidate(true);}
+    void ThemeControl(Control root,Color background,Color card,Color field,Color foreground,Color tint){root.ForeColor=root is Button?Color.White:foreground;root.BackColor=root is RoundedPanel?card:root is Button?tint:root is TextBox||root is ComboBox?field:background;var panel=root as RoundedPanel;if(panel!=null){panel.Surface=card;panel.Border=field;}foreach(Control child in root.Controls)ThemeControl(child,root is RoundedPanel?card:background,card,field,foreground,tint);}
     void ShowPage(int index){selectedPage=index;for(int i=0;i<pages.Length;i++)pages[i].Visible=i==index;ApplyTheme();}
     void SetSecondState(){var s=slots[1];bool enabled=second.Checked;s.Select.Enabled=s.Proxy.Enabled=s.Server.Enabled=s.IP.Enabled=s.Save.Enabled=enabled;s.Launch.Enabled=enabled&&ready;}
     void PrepareFields(Control root){foreach(Control child in root.Controls){var input=child as TextBox;if(input!=null)input.BorderStyle=BorderStyle.None;var combo=child as ComboBox;if(combo!=null){combo.FlatStyle=FlatStyle.Flat;combo.DrawMode=DrawMode.OwnerDrawFixed;combo.ItemHeight=23;combo.DrawItem+=delegate(object sender,DrawItemEventArgs e){var box=(ComboBox)sender;using(var brush=new SolidBrush(box.BackColor))e.Graphics.FillRectangle(brush,e.Bounds);string text=e.Index>=0?box.Items[e.Index].ToString():box.Text;TextRenderer.DrawText(e.Graphics,text,box.Font,e.Bounds,box.ForeColor,TextFormatFlags.Left|TextFormatFlags.VerticalCenter);if((e.State&DrawItemState.Selected)!=0)e.DrawFocusRectangle();};}PrepareFields(child);}}
@@ -156,7 +156,7 @@ class MainForm : Form {
                     try {list.Add(ProxyItem.Parse(line));} catch {throw new ArgumentException(n+". satırın proxy formatı geçersiz.");}
                 }
                 if(list.Count==0)throw new ArgumentException("Liste boş.");
-                foreach(var slot in slots){slot.Proxy.Items.Clear();slot.Proxy.Items.AddRange(list.ToArray());slot.Proxy.SelectedIndex=0;} Log(list.Count+" proxy yüklendi.");
+                for(int i=0;i<slots.Length;i++){slots[i].Proxy.Items.Clear();slots[i].Proxy.Items.AddRange(list.ToArray());slots[i].Proxy.SelectedIndex=Math.Min(i,list.Count-1);} Log(list.Count+" proxy yüklendi.");
             } catch(Exception ex) {Error(ex);}
         }
     }
@@ -166,7 +166,7 @@ class MainForm : Form {
             var input=new TextBox {Location=new Point(12,40),Width=450,UseSystemPasswordChar=true};
             var ok=new Button {Text="Ekle",Location=new Point(362,78),DialogResult=DialogResult.OK};
             d.Controls.Add(label);d.Controls.Add(input);d.Controls.Add(ok);d.AcceptButton=ok;
-            if(d.ShowDialog(this)==DialogResult.OK)try {var item=ProxyItem.Parse(input.Text);foreach(var slot in slots){slot.Proxy.Items.Add(item);slot.Proxy.SelectedIndex=slot.Proxy.Items.Count-1;}}catch(Exception ex){Error(ex);}
+            if(d.ShowDialog(this)==DialogResult.OK)try {var item=ProxyItem.Parse(input.Text);for(int i=0;i<slots.Length;i++){slots[i].Proxy.Items.Add(item);if(i==0||slots[i].Proxy.SelectedIndex<0)slots[i].Proxy.SelectedIndex=slots[i].Proxy.Items.Count-1;}}catch(Exception ex){Error(ex);}
         }
     }
     void SelectSlot(int index) {
@@ -203,6 +203,7 @@ class MainForm : Form {
             if(s.Files.Length==0||!File.Exists(s.Launcher))throw new Exception("Client "+(i+1)+" için client ve launcher dosyalarını seçin.");
             routes.Add(new ClientRoute{Proxy=(ProxyItem)s.Proxy.SelectedItem,Patterns=ClientFiles.Patterns(s.Files,s.Launcher),IP=s.IP.Text,Tag="game-proxy-"+(i+1)});
         }
+        if(second.Checked&&routes[0].Proxy.Host==routes[1].Proxy.Host&&routes[0].Proxy.Port==routes[1].Proxy.Port)throw new Exception("İkinci client için farklı bir proxy adresi seçin.");
         if(second.Checked&&String.Equals(Path.GetDirectoryName(slots[0].Launcher),Path.GetDirectoryName(slots[1].Launcher),StringComparison.OrdinalIgnoreCase))throw new Exception("İki client için iki ayrı oyun klasörü seçin. Aynı dosya yolundaki iki süreç ayrı proxyye atanamaz.");
         if(second.Checked&&RoutingConfig.SharedIP(routes.ToArray()))Log("Aynı sunucu IP'si: ayrı proxy için süreç eşleşmesi gerekli. Süreç bulunamayan sunucu bağlantıları engellenecek.");
         return json.Serialize(RoutingConfig.BuildMany(routes.ToArray(),adapter.alias));
@@ -314,4 +315,5 @@ class MainForm : Form {
         Application.Run(new MainForm());
     }
 }
+
 

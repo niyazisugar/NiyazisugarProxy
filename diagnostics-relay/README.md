@@ -1,6 +1,6 @@
 # Private diagnostic relay — setup required
 
-This feature is staged on the `diagnostics-relay` branch. It is not deployed or enabled in the published application. The application button sends only the cleaned log and application version; it does not upload the proxy list, credential configuration, Windows machine name, or game files. Network destination addresses remain useful for diagnosis. Cleaning is best effort; keep the receiving repository private.
+The diagnostic submission feature is included starting in application v1.1.1. The deployed service address is prefilled; a working relay and connection code are still required. Production submission is verified separately from mocked tests. The application button sends only the cleaned log and application version; it does not upload the proxy list, credential configuration, Windows machine name, or game files. Network destination addresses remain useful for diagnosis. Cleaning is best effort; keep the receiving repository private.
 
 ## One-time service setup
 

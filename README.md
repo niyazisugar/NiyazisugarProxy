@@ -58,3 +58,7 @@ Imported and manually added proxies, including credentials and selected proxy in
 ## v1.3.2 — bound logging and async forwarding
 
 Engine output enters a bounded 500-line queue (maximum 4096 characters per line) and is drained in batches every 250 ms, rather than posting a separate UI callback and file write per engine line. Overload counts are recorded when excess lines are dropped. Proxy sanitization no longer walks duplicate slot entries. TCP bridge forwarding uses async stream copies instead of two blocked worker threads per established session. This addresses identified sources of load; game reconnect failures and actual hour-long CPU usage still require user-PC logs and process measurements.
+
+## v1.3.3 — avoid engine IPv6 recapture
+
+User logs showed repeated sing-box-originated IPv6 UDP packets re-entering the TUN and being routed to direct again. Restrict the TUN address to IPv4 for the configured IPv4 game server, so native IPv6 traffic is not captured by the application. Add an early TUN-only reject rule for sing-box.exe as a fail-fast guard if its own outbound packets re-enter. Keep explicit physical-interface binding for direct IPv4 traffic. No global Windows IPv6 setting is changed. User-PC long-duration verification remains required.

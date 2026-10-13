@@ -54,3 +54,7 @@ For shared server IPs, unknown-process TCP connections must be rejected to preve
 ## v1.3.1 — remember proxy lists
 
 Imported and manually added proxies, including credentials and selected proxy indices, are stored atomically in a DPAPI CurrentUser encrypted file at `%LOCALAPPDATA%\NiyazisugarProxy\proxies.dat`. Startup restores the list on this PC/Windows account; application updates do not replace it. A corrupt or unreadable file is left untouched and logged. UI preview tests do not read or write the real proxy vault.
+
+## v1.3.2 — bound logging and async forwarding
+
+Engine output enters a bounded 500-line queue (maximum 4096 characters per line) and is drained in batches every 250 ms, rather than posting a separate UI callback and file write per engine line. Overload counts are recorded when excess lines are dropped. Proxy sanitization no longer walks duplicate slot entries. TCP bridge forwarding uses async stream copies instead of two blocked worker threads per established session. This addresses identified sources of load; game reconnect failures and actual hour-long CPU usage still require user-PC logs and process measurements.

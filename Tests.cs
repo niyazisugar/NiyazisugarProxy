@@ -48,6 +48,8 @@ class Tests {
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(2,2),new System.Drawing.Size(840,650),10)==13);
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(839,649),new System.Drawing.Size(840,650),10)==17);
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(200,300),new System.Drawing.Size(840,650),10)==1);
+            var logBuffer=new EngineLogBuffer();for(int n=0;n<100000;n++)logBuffer.Add("Flood log "+n);Assert(logBuffer.Count==500);string firstBatch=logBuffer.Drain();Assert(firstBatch.Contains("99500"));Assert(logBuffer.Count==400);while(logBuffer.Count>0)logBuffer.Drain();Assert(logBuffer.Drain()=="");
+            logBuffer.Add(new string('x',100000));Assert(logBuffer.Drain().Length<4200);Console.WriteLine("Log flood queue bound, batch drain and line-size tests passed.");
             string vaultDir=Path.Combine(Path.GetTempPath(),"ProxyVaultTest-"+Guid.NewGuid().ToString("N"));
             try{
                 string vaultFile=Path.Combine(vaultDir,"proxies.dat");var saved=new ProxySnapshot{Items=new ProxyItem[]{ProxyItem.Parse("192.0.2.1:1080:vault-user:vault-password"),ProxyItem.Parse("192.0.2.2:1081")},Selected=new int[]{1,0}};

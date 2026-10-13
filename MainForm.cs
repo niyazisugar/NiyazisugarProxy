@@ -28,12 +28,13 @@ class MainForm : Form {
     ComboBox proxies=new ComboBox(); TextBox client=new TextBox(); TextBox logs=new TextBox();
     Label status=new Label(); Button load,add,select,connect,stop,launch,update;
     UpdateRelease availableUpdate; bool updateBusy;
+    TextBox serverIP=new TextBox();
     string launcherPath; string[] selectedFiles=new string[0];
     Process engine; string configFile; bool starting,closing,ready;
     readonly JavaScriptSerializer json=new JavaScriptSerializer();
     readonly string baseDir=AppDomain.CurrentDomain.BaseDirectory;
     public MainForm() {
-        Text="NiyazisugarProxy v"+Updates.Current.ToString(3)+" • Metin2 Client SOCKS5"; ClientSize=new Size(780,540); MinimumSize=new Size(796,579);
+        Text="NiyazisugarProxy v"+Updates.Current.ToString(3)+" • Metin2 Client SOCKS5"; ClientSize=new Size(780,580); MinimumSize=new Size(796,619);
         BackColor=Color.FromArgb(37,27,55); ForeColor=Color.FromArgb(237,230,250); Font=new Font("Segoe UI",10);
         Label title=new Label {Text="NIYAZISUGAR PROXY",Font=new Font("Segoe UI",19,FontStyle.Bold),AutoSize=true,Location=new Point(22,18)}; Controls.Add(title);
         Controls.Add(new Label {Text="İstediğiniz sunucunun asıl oyun clientini seçin",AutoSize=true,Location=new Point(24,61)});
@@ -46,8 +47,11 @@ class MainForm : Form {
         update=Btn("Güncelleme kontrol",487,235,271,CheckUpdates);
         Shown+=delegate {CheckUpdates(null,EventArgs.Empty);};
         status.SetBounds(22,288,736,42); status.Text="Durum: Bağlı değil"; Controls.Add(status);
-        Controls.Add(new Label {Text="Diğer uygulamalar direct çıkış kullanır. DNS sistem bağlantısında kalır.",AutoSize=true,Location=new Point(22,332)});
-        logs.SetBounds(22,363,736,153); logs.Multiline=true; logs.ReadOnly=true; logs.ScrollBars=ScrollBars.Vertical;
+        Controls.Add(new Label {Text="Sunucu IP kuralı (isteğe bağlı):",AutoSize=true,Location=new Point(22,332)});
+        serverIP.SetBounds(245,328,180,28);Controls.Add(serverIP);
+        Controls.Add(new Label {Text="Sezar2: 185.128.114.39",AutoSize=true,Location=new Point(443,332)});
+        Controls.Add(new Label {Text="IP girilirse o adrese giden tüm TCP bağlantıları proxy kullanır. Boş bırakılabilir.",AutoSize=true,Location=new Point(22,367)});
+        logs.SetBounds(22,403,736,153); logs.Multiline=true; logs.ReadOnly=true; logs.ScrollBars=ScrollBars.Vertical;
         logs.BackColor=Color.FromArgb(23,15,37); logs.ForeColor=ForeColor; logs.Font=new Font("Consolas",9); logs.Anchor=AnchorStyles.Top|AnchorStyles.Bottom|AnchorStyles.Left|AnchorStyles.Right; Controls.Add(logs);
         FormClosing+=OnClosing;
     }
@@ -105,21 +109,15 @@ class MainForm : Form {
         }
     }
     void SetBusy(bool busy) {
-        load.Enabled=add.Enabled=select.Enabled=connect.Enabled=proxies.Enabled=!busy;
+        load.Enabled=add.Enabled=select.Enabled=connect.Enabled=proxies.Enabled=serverIP.Enabled=!busy;
         update.Enabled=!busy&&!updateBusy;
         stop.Enabled=busy&&!starting; launch.Enabled=busy&&ready;
     }
     string Config(string exe,ProxyItem p) {
-        var proxy=new Dictionary<string,object> {{"type","socks"},{"tag","game-proxy"},{"version","5"},{"server",p.Host},{"server_port",p.Port},{"username",p.User},{"password",p.Password}};
-        var rule=new Dictionary<string,object> {{"process_path_regex",ClientFiles.Patterns(selectedFiles,launcherPath)},{"action","route"},{"outbound","game-proxy"}};
-        var tun=new Dictionary<string,object> {{"type","tun"},{"tag","metin-tun"},{"interface_name","NiyazisugarProxy"},{"address",new string[]{"172.29.240.1/30","fd42:6d65:7469::1/126"}},{"auto_route",true},{"strict_route",false},{"stack","mixed"}};
-        var config=new Dictionary<string,object> {
-            {"log",new Dictionary<string,object>{{"level","info"},{"timestamp",true}}},
-            {"inbounds",new object[]{tun}},
-            {"outbounds",new object[]{new Dictionary<string,object>{{"type","direct"},{"tag","direct"}},proxy}},
-            {"route",new Dictionary<string,object>{{"auto_detect_interface",true},{"rules",new object[]{rule}},{"final","direct"}}}
-        };
-        return json.Serialize(config);
+        var adapter=NetworkRoutes.Select();
+        Log("Fiziksel ağ arayüzü: "+adapter.alias+"; geçit: "+adapter.gateway);
+        if(!String.IsNullOrWhiteSpace(serverIP.Text))Log("Sunucu IP kuralı: "+serverIP.Text+" (tüm uygulamalar için TCP hedef eşleşmesi)");
+        return json.Serialize(RoutingConfig.Build(p,adapter.alias,ClientFiles.Patterns(selectedFiles,launcherPath),serverIP.Text));
     }
     void Connect(object sender,EventArgs e) {
         try {
@@ -127,7 +125,7 @@ class MainForm : Form {
             using(WindowsIdentity id=WindowsIdentity.GetCurrent())if(!new WindowsPrincipal(id).IsInRole(WindowsBuiltInRole.Administrator))throw new Exception("Uygulamayı yönetici olarak çalıştırın.");
             if(proxies.SelectedItem==null)throw new Exception("Proxy seçin.");
             if(selectedFiles.Length==0||!File.Exists(launcherPath))throw new Exception("Client ve launcher dosyalarını seçin.");
-            string bin=Path.Combine(baseDir,"sing-box.exe"); if(!File.Exists(bin))throw new Exception("sing-box.exe eksik. KURULUM.txt dosyasını okuyun.");
+            string bin=Path.Combine(baseDir,"sing-box.exe"); 
             configFile=Path.Combine(Path.GetTempPath(),"metinproxy-"+Guid.NewGuid().ToString("N")+".json");
             File.WriteAllText(configFile,Config(launcherPath,(ProxyItem)proxies.SelectedItem),new UTF8Encoding(false));
             starting=true;ready=false;SetBusy(true);status.Text="Durum: Yapılandırma kontrol ediliyor…";
@@ -135,10 +133,13 @@ class MainForm : Form {
         }catch(Exception ex){CleanConfig();Error(ex);}
     }
     ProcessStartInfo Info(string bin,string command) {
-        return new ProcessStartInfo {FileName=bin,Arguments=command+" -c \""+configFile+"\"",WorkingDirectory=baseDir,UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,StandardOutputEncoding=Encoding.UTF8,StandardErrorEncoding=Encoding.UTF8};
+        return new ProcessStartInfo {FileName=bin,Arguments=command+" -c \""+configFile+"\"",WorkingDirectory=Path.GetDirectoryName(bin),UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true,StandardOutputEncoding=Encoding.UTF8,StandardErrorEncoding=Encoding.UTF8};
     }
+    [System.Runtime.InteropServices.DllImport("dnsapi.dll")] static extern bool DnsFlushResolverCache();
+    static void FlushDns() {DnsFlushResolverCache();}
     void StartEngine(string bin) {
         try {
+            bin=EngineBootstrap.Ensure(bin,delegate(string text){UI(delegate {Log(text);});});
             using(Process check=new Process {StartInfo=Info(bin,"check")}) {
                 var output=new StringBuilder();
                 check.OutputDataReceived+=delegate(object s,DataReceivedEventArgs e){if(e.Data!=null)lock(output)output.AppendLine(e.Data);};
@@ -150,9 +151,13 @@ class MainForm : Form {
             Process proc=new Process {StartInfo=Info(bin,"run")};
             DataReceivedEventHandler handler=delegate(object s,DataReceivedEventArgs e) {
                 if(e.Data==null)return;
-                string line=e.Data; UI(delegate {Log(line);if(line.Contains("sing-box started")){ready=true;launch.Enabled=true;status.Text="Durum: Motor hazır — oyun bağlantısı henüz doğrulanmadı";}});
+                string line=e.Data; UI(delegate {line=Regex.Replace(line,"\\x1B\\[[0-?]*[ -/]*[@-~]","");Log(line);
+                if(line.IndexOf("failed to search process",StringComparison.OrdinalIgnoreCase)>=0)status.Text="UYARI: Süreç okunamadı; oyun proxy kullanımı doğrulanmadı.";
+                if(line.IndexOf("outbound/socks[game-proxy]",StringComparison.OrdinalIgnoreCase)>=0)status.Text="Proxy yönlendirme denemesi görüldü; oyun bağlantısı henüz doğrulanmadı.";
+                if(line.Contains("sing-box started")){ready=true;launch.Enabled=true;status.Text="Durum: Motor hazır — oyun bağlantısı henüz doğrulanmadı";}});
             };
             proc.OutputDataReceived+=handler;proc.ErrorDataReceived+=handler;
+            FlushDns();
             proc.Start();engine=proc;
             UI(delegate {starting=false;SetBusy(true);status.Text="Durum: Motor başlatılıyor…";});
             proc.BeginOutputReadLine();proc.BeginErrorReadLine();

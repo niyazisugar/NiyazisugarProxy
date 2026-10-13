@@ -11,8 +11,29 @@ class Tests {
         });
     }
     static void Reject(Action action) {try {action();}catch(Exception){return;}throw new Exception("Expected rejection");}
-    public static int Main() {
+    public static int Main(string[] args) {
         try {
+            if(args.Length==2&&args[0]=="--config-check") {
+                var adapter=NetworkRoutes.Select();
+                foreach(string fallback in new string[]{"","185.128.114.39"}) {
+                    var config=RoutingConfig.Build(new ProxyItem{Host="192.0.2.1",Port=1080,User="test",Password="example"},adapter.alias,new string[]{"(?i)^C:\\\\Games\\\\metin2client\\.bin$"},fallback);
+                    string file=Path.GetTempFileName();
+                    try {
+                        File.WriteAllText(file,new JavaScriptSerializer().Serialize(config));
+                        using(var process=System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(args[1],"check -c "+Updates.Quote(file)){UseShellExecute=false,RedirectStandardError=true,RedirectStandardOutput=true,CreateNoWindow=true})) {
+                            var err=process.StandardError.ReadToEndAsync();var output=process.StandardOutput.ReadToEndAsync();
+                            if(!process.WaitForExit(15000)){process.Kill();throw new Exception("Engine check timeout");}
+                            Console.WriteLine(err.GetAwaiter().GetResult()+output.GetAwaiter().GetResult());Assert(process.ExitCode==0);
+                        }
+                    }finally {File.Delete(file);}
+                }
+                Console.WriteLine("Actual sing-box config validation passed with and without fallback.");return 0;
+            }
+            Assert(RoutingConfig.ValidateFallback("")==null);
+            Assert(RoutingConfig.ValidateFallback("185.128.114.39")=="185.128.114.39/32");
+            Reject(delegate {RoutingConfig.ValidateFallback("bad-ip");});
+            var routes=new NetworkRoutes.Route[]{new NetworkRoutes.Route{Index=1,Metric=1,NextHop=0},new NetworkRoutes.Route{Index=2,Metric=100,NextHop=1},new NetworkRoutes.Route{Index=3,Metric=10,NextHop=1}};
+            Assert(NetworkRoutes.Choose(routes,new HashSet<uint>{1,2,3}).Index==3);
             var current=new Version(1,0,0,0);string url="https://github.com/niyazisugar/NiyazisugarProxy/releases/download/v1.0.1/NiyazisugarProxy.exe";
             string digest="sha256:"+new string('a',64);
             Assert(Updates.Parse(Release("v1.0.0",url,digest,false),current)==null);

@@ -22,9 +22,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $r = gh api repos/SagerNet/sing-box/releases/tags/v1.12.25 | ConvertFrom-Json
+          $r = gh api repos/SagerNet/sing-box/releases/tags/v1.14.2 | ConvertFrom-Json
           if ($LASTEXITCODE -ne 0) { throw 'Engine release lookup failed' }
-          $a = $r.assets | Where-Object name -eq 'sing-box-1.12.25-windows-amd64.zip'
+          $a = $r.assets | Where-Object name -eq 'sing-box-1.14.2-windows-amd64.zip'
           if (!$a -or $a.digest -notmatch '^sha256:[a-fA-F0-9]{64}$') { throw 'Engine checksum missing' }
           Invoke-WebRequest $a.browser_download_url -OutFile engine.zip
           $hash = (Get-FileHash engine.zip -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -33,7 +33,9 @@ jobs:
           $bin = Get-ChildItem engine -Filter sing-box.exe -Recurse | Select-Object -First 1
           if (!$bin) { throw 'Engine executable missing' }
           Copy-Item $bin.FullName dist/sing-box.exe
-          Invoke-WebRequest 'https://raw.githubusercontent.com/SagerNet/sing-box/v1.12.25/LICENSE' -OutFile dist/SING-BOX-LICENSE.txt
+          & ./dist/Tests.exe --config-check ./dist/sing-box.exe
+          if ($LASTEXITCODE -ne 0) { throw 'Engine config check failed' }
+          Invoke-WebRequest 'https://raw.githubusercontent.com/SagerNet/sing-box/v1.14.2/LICENSE' -OutFile dist/SING-BOX-LICENSE.txt
           Copy-Item KURULUM.txt dist/
           Remove-Item dist/Tests.exe
           Compress-Archive -Path dist/* -DestinationPath NiyazisugarProxy-Windows-x64.zip

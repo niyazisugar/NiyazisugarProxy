@@ -7,7 +7,7 @@ NIYAZISUGARPROXY — Windows x64
    pencerede launcher EXE'yi secin. Hepsi ayni oyun klasorunde olmali.
 4. Baglan, ardindan Oyunu ac.
 Python veya tarayici gerekmez. .NET Framework 4.x gerekir.
-Pakette sing-box 1.12.25 windows-amd64 motoru bulunur (resmi SagerNet surumu).
+Pakette sing-box 1.14.2 windows-amd64 motoru bulunur (resmi SagerNet surumu).
 
 Uygulama acilista GitHub'dan yeni surumu kontrol eder.
 Guncelle dugmesi varsa oyunlari kapatip Baglantiyi Durdur ile sonlandirin.
@@ -16,7 +16,7 @@ Internet yoksa mevcut uygulamayi kullanabilirsiniz.
 Guncelleme yalnizca NiyazisugarProxy.exe'yi degistirir; sing-box ve proxy
 listeleri korunur. Son EXE NiyazisugarProxy.exe.previous olarak yedeklenir.
 Guncelleme acilista uyumsuzsa bu yedegi kopyalayip .exe olarak kullanabilirsiniz.
-Motor degisikligi gereken surumler ayri kurulum paketi gerektirir.
+Eski motor varsa sonraki Baglan isleminde SHA256 ile dogrulanmis 1.14.2 otomatik indirilir. Ilk indirme icin internet gerekir.
 
 YONLENDIRME
 Secilen launcher ve ayni klasordeki metin2client.bin / sezar2client.bin
@@ -28,12 +28,18 @@ Motor hazir yazisi oyunun proxy baglantisini dogrulamaz.
 
 Anti-cheat ve gercek oyun baglantisi test edilmedi.
 Yerel TUN sistemi diger uygulamalari direct cikisindan isleyebilir.
-DNS sistem baglantisini kullanir. Kill switch yoktur; motor kapanirsa oyun
+DNS direct Cloudflare DoH kullanir; IPv4 cevaplari tum uygulamalari etkiler. Kill switch yoktur; motor kapanirsa oyun
 normal IP ile baglanabilir. Durdurmadan once oyunu kapatin.
 Gecici config proxy sifresini icerir; normal kapanista silinir.
 Ani kesintide TEMP klasorunde niyazisugarproxy/metinproxy JSON dosyasi kalabilir.
 Proxy adreslerinin SOCKS5 olmasi gerekir; UDP icin sunucu destegi gerekir.
 
 Kaynak: https://github.com/niyazisugar/NiyazisugarProxy
-Motor kaynagi: https://github.com/SagerNet/sing-box/tree/v1.12.25
+Motor kaynagi: https://github.com/SagerNet/sing-box/tree/v1.14.2
 Motor lisansi: SING-BOX-LICENSE.txt
+
+1.1.0: socksproject kaynaklarindan fiziksel arayuz secimi ve DNS davranisi
+uyarlandi. Sunucu IP alani istege baglidir; bosken surec yolu kurallari
+kullanilir. Sezar2 icin kaynak projedeki IP: 185.128.114.39. IP alanini
+doldurursaniz o IP'ye giden TUM uygulamalarin TCP baglantisi proxy kullanir.
+Surec erisim engeli kaldirilmaz. Diger serverler icin dogrulanmis IP gerekir.

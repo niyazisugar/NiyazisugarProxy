@@ -42,6 +42,7 @@ class Tests {
                 RelayTests.VerifyLiveEngine(args[1],adapter.alias);
                 Console.WriteLine("Actual sing-box config validation passed with and without fallback.");return 0;
             }
+            ProbeTests.Run();
             Assert(WindowGeometry.Restore(0,0,new System.Drawing.Size(1920,1080))==new System.Drawing.Size(740,530));
             Assert(WindowGeometry.Restore(4000,4000,new System.Drawing.Size(1366,768))==new System.Drawing.Size(1326,728));
             Assert(WindowGeometry.Restore(0,0,new System.Drawing.Size(800,760))==new System.Drawing.Size(740,530));

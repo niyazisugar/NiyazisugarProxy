@@ -90,6 +90,7 @@ class Tests {
             pair[1].Patterns=pair[0].Patterns;Reject(delegate{RoutingConfig.BuildMany(pair,"Ethernet");});
             Console.WriteLine("Saved server/theme roundtrip and dual-client routing/conflict tests passed.");
             if(args.Length==1&&args[0]=="--ui-smoke") {
+                System.Windows.Forms.Application.SetUnhandledExceptionMode(System.Windows.Forms.UnhandledExceptionMode.ThrowException);
                 System.Windows.Forms.Application.EnableVisualStyles();
                 using(var form=new MainForm(true)){form.Show();System.Windows.Forms.Application.DoEvents();form.VerifyDesign();form.Close();}
                 Console.WriteLine("Reference-screen, resize, DPI and log-control UI checks passed.");

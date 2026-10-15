@@ -2,8 +2,8 @@ using System;
 using System.Drawing;
 static class WindowGeometry {
     public static Size Restore(int width,int height,Size workArea){
-        int maxWidth=Math.Max(640,workArea.Width-40),maxHeight=Math.Max(520,workArea.Height-40);
-        return new Size(Math.Max(640,Math.Min(width>0?width:840,maxWidth)),Math.Max(520,Math.Min(height>0?height:650,maxHeight)));
+        int maxWidth=Math.Max(640,workArea.Width-40),maxHeight=Math.Max(460,workArea.Height-40);
+        return new Size(Math.Max(640,Math.Min(width>0?width:740,maxWidth)),Math.Max(460,Math.Min(height>0?height:530,maxHeight)));
     }
     // Standard WM_NCHITTEST resize edges, including signed coordinates on secondary displays.
     public static int HitTest(Point point,Size size,int edge){

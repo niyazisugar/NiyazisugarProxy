@@ -85,3 +85,7 @@ class PremiumHelpLabel : Label {
     public PremiumHelpLabel(){DoubleBuffered=true;}
     protected override void OnPaint(PaintEventArgs e){base.OnPaint(e);int width=TextRenderer.MeasureText(Text,Font,new Size(1000,100),TextFormatFlags.NoPadding).Width;int size=Math.Max(16,(int)(Font.SizeInPoints*1.1f));Symbols.Draw(e.Graphics,"help",new RectangleF(width+12,(Height-size)/2,size,size),Palette.Muted);}
 }
+class PremiumSearchBox : TextBox {
+    void PaintHint(Graphics graphics){if(TextLength==0)TextRenderer.DrawText(graphics,"Loglarda ara...",Font,ClientRectangle,Palette.Muted,TextFormatFlags.VerticalCenter|TextFormatFlags.NoPadding);}
+    protected override void WndProc(ref Message message){base.WndProc(ref message);if(message.Msg==15){using(var graphics=Graphics.FromHwnd(Handle))PaintHint(graphics);}else if((message.Msg==0x317||message.Msg==0x318)&&message.WParam!=IntPtr.Zero){using(var graphics=Graphics.FromHdc(message.WParam))PaintHint(graphics);}}
+}

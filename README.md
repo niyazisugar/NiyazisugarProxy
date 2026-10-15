@@ -62,3 +62,11 @@ Engine output enters a bounded 500-line queue (maximum 4096 characters per line)
 ## v1.3.3 — avoid engine IPv6 recapture
 
 User logs showed repeated sing-box-originated IPv6 UDP packets re-entering the TUN and being routed to direct again. Restrict the TUN address to IPv4 for the configured IPv4 game server, so native IPv6 traffic is not captured by the application. Add an early TUN-only reject rule for sing-box.exe as a fail-fast guard if its own outbound packets re-enter. Keep explicit physical-interface binding for direct IPv4 traffic. No global Windows IPv6 setting is changed. User-PC long-duration verification remains required.
+
+## v1.4.0 — approved NiyaziSUGAR desktop design
+
+The native .NET Framework WinForms interface implements the approved connection, settings and logs compositions with charcoal cards, champagne accents, turquoise primary controls and vector-drawn branding/icons. The common header follows the connection reference; the supplied references themselves use different headers. Windows font rasterization, native dropdown/scrollbar behavior and the hand-drawn vector mark may differ slightly from the source raster artwork. No reference image is used as a background.
+
+The interface exposes one client. Existing first-client selection, server profiles, encrypted proxy list, window size and settings paths remain compatible; obsolete second-client data is retained in the existing data format but cannot start a second client. Proxy motor, local logs, bounded engine log queue, async bridge forwarding and IPv4/self-loop protections are preserved. The status card explicitly distinguishes engine readiness from unverified game proxy use and never reports a successful game connection based only on engine startup.
+
+Logs use a 1500-entry bounded virtual table with search, severity filtering, automatic scrolling, expandable details, copy-visible and view-only pause/resume. Pausing the view freezes a bounded snapshot while connection handling and local file logging continue. Narrow windows use vertical stacking and scrolling to avoid clipping. Per-monitor DPI awareness and layout scaling are enabled. No animation/render loop is used.

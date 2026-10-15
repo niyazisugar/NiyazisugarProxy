@@ -48,6 +48,7 @@ class Tests {
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(2,2),new System.Drawing.Size(840,650),10)==13);
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(839,649),new System.Drawing.Size(840,650),10)==17);
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(200,300),new System.Drawing.Size(840,650),10)==1);
+            var book=new LogBook();for(int entry=0;entry<5000;entry++)book.Add("2026-10-15 05:30:01 INFO Entry "+entry);Assert(book.Snapshot().Count==1500);Assert(book.Snapshot()[0].Message=="Entry 3500");book.Add("2026-10-15 05:30:02 WARN [123 1ms] Örnek uyarı");Assert(LogBook.Filter(book.Snapshot(),"UYARI","UYARI").Count==1);Assert(LogBook.Filter(book.Snapshot(),"Entry","HATA").Count==0);Console.WriteLine("Bounded log model, search and severity filter tests passed.");
             var logBuffer=new EngineLogBuffer();for(int n=0;n<100000;n++)logBuffer.Add("Flood log "+n);Assert(logBuffer.Count==500);string firstBatch=logBuffer.Drain();Assert(firstBatch.Contains("99500"));Assert(logBuffer.Count==400);while(logBuffer.Count>0)logBuffer.Drain();Assert(logBuffer.Drain()=="");
             logBuffer.Add(new string('x',100000));Assert(logBuffer.Drain().Length<4200);Console.WriteLine("Log flood queue bound, batch drain and line-size tests passed.");
             string vaultDir=Path.Combine(Path.GetTempPath(),"ProxyVaultTest-"+Guid.NewGuid().ToString("N"));
@@ -63,9 +64,9 @@ class Tests {
             string prefDir=Path.Combine(Path.GetTempPath(),"PreferencesTest-"+Guid.NewGuid().ToString("N"));
             try {
                 var pref=new AppPreferences();pref.PutServer("Test server","203.0.113.5");pref.PutServer("TEST SERVER","203.0.113.6");
-                Assert(pref.Servers.Count==2);pref.WindowWidth=720;pref.WindowHeight=560;pref.Light=true;pref.Accent=2;pref.SecondEnabled=true;pref.Slots[1].IP="203.0.113.6";
+                Assert(pref.Servers.Count==2);pref.WindowWidth=720;pref.WindowHeight=560;pref.Light=true;pref.Accent=2;pref.PremiumAccent="Blue";pref.LogAutoScroll=false;pref.LogLevel=2;pref.SecondEnabled=true;pref.Slots[1].IP="203.0.113.6";
                 string prefFile=Path.Combine(prefDir,"preferences.json");pref.SaveTo(prefFile);var loaded=AppPreferences.LoadFrom(prefFile);
-                Assert(loaded.WindowWidth==720&&loaded.WindowHeight==560);Assert(loaded.Light&&loaded.Accent==2&&loaded.SecondEnabled&&loaded.Slots[1].IP=="203.0.113.6");Assert(loaded.Servers[1].IP=="203.0.113.6");
+                Assert(loaded.WindowWidth==720&&loaded.WindowHeight==560);Assert(loaded.PremiumAccent=="Blue"&&!loaded.LogAutoScroll&&loaded.LogLevel==2);Assert(loaded.Light&&loaded.Accent==2&&loaded.SecondEnabled&&loaded.Slots[1].IP=="203.0.113.6");Assert(loaded.Servers[1].IP=="203.0.113.6");
                 loaded.Light=false;loaded.SaveTo(prefFile);Assert(!AppPreferences.LoadFrom(prefFile).Light);
                 Reject(delegate{pref.PutServer("Invalid","not-ip");});
             }finally{if(Directory.Exists(prefDir))Directory.Delete(prefDir,true);}
@@ -90,19 +91,10 @@ class Tests {
             pair[1].Patterns=pair[0].Patterns;Reject(delegate{RoutingConfig.BuildMany(pair,"Ethernet");});
             Console.WriteLine("Saved server/theme roundtrip and dual-client routing/conflict tests passed.");
             if(args.Length==1&&args[0]=="--ui-smoke") {
+                System.Windows.Forms.Application.SetUnhandledExceptionMode(System.Windows.Forms.UnhandledExceptionMode.ThrowException);
                 System.Windows.Forms.Application.EnableVisualStyles();
-                using(var form=new MainForm(true)){
-                    form.Show();System.Windows.Forms.Application.DoEvents();Assert(form.ClientSize.Width<=840);
-                    SavePreview(form,"ui-preview.png");
-                    form.ClientSize=new System.Drawing.Size(640,520);System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-compact.png");Assert(form.ClientSize.Width==640);
-                    FindSecond(form).Checked=true;System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-two-compact.png");
-                    form.ClientSize=new System.Drawing.Size(1000,780);System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-large.png");
-                    FindButton(form,"Ayarlar").PerformClick();System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-settings.png");
-                    FindButton(form,"Loglar").PerformClick();System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-logs.png");
-                    FindButton(form,"Ayarlar").PerformClick();var themeBox=FindTheme(form);Assert(themeBox!=null);themeBox.SelectedIndex=1;System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-light.png");
-                    form.Close();
-                }
-                Console.WriteLine("Windows UI construction and screenshot passed.");
+                using(var form=new MainForm(true)){form.Show();System.Windows.Forms.Application.DoEvents();form.VerifyDesign();form.Close();}
+                Console.WriteLine("Reference-screen, resize, DPI and log-control UI checks passed.");
             }
             string safe=Diagnostics.Clean("username demo password SECRET\n"+Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)+"\nAuthorization: Bearer TEST",new ProxyItem[]{new ProxyItem{User="demo",Password="SECRET"}});
             Assert(!safe.Contains("SECRET")&&!safe.Contains("demo")&&!safe.Contains("Bearer TEST"));

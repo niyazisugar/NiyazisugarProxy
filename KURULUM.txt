@@ -76,3 +76,12 @@ v1.3.1: Proxy listesi ve seçilen proxy otomatik kaydedilir.
 Kapatıp açınca liste geri gelir. İlk güncellemeden sonra listeyi bir kez yükleyin.
 Kayıt bu bilgisayardaki Windows hesabına bağlı şifrelemeyle korunur.
 İkinci client kullanmayacaksanız 2. client etkin seçeneğini kapalı bırakın.
+
+v1.4.0 — NiyaziSUGAR arayüzü
+Bağlantı: tek client, proxy/sunucu/oyun dosyası/IP kaydı ve bağlantı işlemleri.
+Ayarlar: tema, vurgu rengi, önizleme, gerçek sürüm ve log klasörü.
+Loglar: arama, seviye filtresi, otomatik kaydırma ve görünümü duraklatma.
+Görünümü duraklatmak bağlantıyı veya dosyaya kayıt işlemini durdurmaz.
+Kayıtlı proxy ve sunucu bilgileri önceki sürümle aynı yerde korunur.
+Motor hazır olması, oyun bağlantısının proxyden geçtiğini doğrulamaz;
+doğrulanmamış bağlantı başarılı gösterilmez.

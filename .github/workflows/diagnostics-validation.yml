@@ -13,8 +13,10 @@ jobs:
         shell: pwsh
         run: ./build.ps1
       - name: Windows interface smoke test
+        timeout-minutes: 3
         shell: pwsh
         run: |
+          Set-DisplayResolution -Width 1920 -Height 1440 -Force
           & ./dist/Tests.exe --ui-smoke
           if ($LASTEXITCODE -ne 0) { throw 'UI smoke failed' }
       - name: Validate with official engine
@@ -31,6 +33,7 @@ jobs:
           & ./dist/Tests.exe --config-check $bin.FullName
           if ($LASTEXITCODE -ne 0) { throw 'Engine validation failed' }
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: desktop-preview
           path: ui-*.png

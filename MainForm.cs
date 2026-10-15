@@ -37,7 +37,7 @@ partial class MainForm : Form {
     string launcherPath{get{return slots[0].Launcher;}} string[] selectedFiles{get{return slots[0].Files;}}
     Label status=new Label();Button load,add,connect,stop,update,sendReport,minimize,close;
     ComboBox theme=new PremiumComboBox();AppPreferences preferences;
-    UpdateRelease availableUpdate;bool updateBusy;string localLogPath;
+    UpdateRelease availableUpdate;bool updateBusy,updateFailed;string localLogPath;
     readonly EngineLogBuffer engineLogs=new EngineLogBuffer();System.Windows.Forms.Timer logTimer;DateTime nextPerformance=DateTime.UtcNow.AddMinutes(1);
     SlotRelay[] relays;LiveRouting liveRoutes;Process engine;string configFile;
     bool starting,closing,ready,initializing=true,previewMode,proxyLoading;
@@ -61,7 +61,7 @@ partial class MainForm : Form {
     [System.Runtime.InteropServices.DllImport("user32.dll")]static extern IntPtr SendMessage(IntPtr handle,int message,int wparam,int lparam);
     void DragWindow(object sender,MouseEventArgs e){if(e.Button==MouseButtons.Left){ReleaseCapture();SendMessage(Handle,0xA1,2,0);}}
     protected override void WndProc(ref Message message){
-        if(message.Msg==0x02E0&&!initializing){long dpi=message.WParam.ToInt64()&0xffff;uiDpi=Math.Max(1,dpi/96f);var proposed=(NativeRect)System.Runtime.InteropServices.Marshal.PtrToStructure(message.LParam,typeof(NativeRect));Bounds=Rectangle.FromLTRB(proposed.Left,proposed.Top,proposed.Right,proposed.Bottom);LayoutWindow();message.Result=IntPtr.Zero;return;}
+        if(message.Msg==0x02E0&&!initializing){long dpi=message.WParam.ToInt64()&0xffff;uiDpi=Math.Max(1,dpi/96f);var proposed=(NativeRect)System.Runtime.InteropServices.Marshal.PtrToStructure(message.LParam,typeof(NativeRect));var rectangle=Rectangle.FromLTRB(proposed.Left,proposed.Top,proposed.Right,proposed.Bottom);UpdateMinimumSize(Screen.FromRectangle(rectangle).WorkingArea.Size);Bounds=rectangle;LayoutWindow();message.Result=IntPtr.Zero;return;}
         if(message.Msg==0x84&&WindowState==FormWindowState.Normal){base.WndProc(ref message);if(message.Result==new IntPtr(1)){long bits=message.LParam.ToInt64();var point=PointToClient(new Point((short)(bits&0xffff),(short)((bits>>16)&0xffff)));int hit=WindowGeometry.HitTest(point,ClientSize,(int)(8*uiDpi));if(hit!=1)message.Result=new IntPtr(hit);}return;}base.WndProc(ref message);
     }
     [System.Runtime.InteropServices.StructLayout(System.Runtime.InteropServices.LayoutKind.Sequential)]struct NativeRect{public int Left,Top,Right,Bottom;}
@@ -218,17 +218,17 @@ partial class MainForm : Form {
     void CheckUpdates(object sender,EventArgs e) {
         if(updateBusy || starting || engine!=null)return;
         if(availableUpdate!=null) {InstallUpdate();return;}
-        updateBusy=true;update.Enabled=false;connect.Enabled=false;
+        updateFailed=false;updateBusy=true;update.Enabled=false;connect.Enabled=false;
         var thread=new Thread(delegate() {
             try {
                 UpdateRelease result=Updates.Check();
                 UI(delegate {availableUpdate=result;Log(result==null?"Sürüm güncel; yeni yayın bulunamadı.":"Yeni sürüm: "+result.Version);UpdateFinished();});
-            }catch(Exception ex){UI(delegate {Log("Güncelleme kontrolü: "+ex.Message);UpdateFinished();});}
+            }catch(Exception ex){UI(delegate {updateFailed=true;Log("Güncelleme kontrolü: "+ex.Message);UpdateFinished();});}
         });thread.IsBackground=true;thread.Start();
     }
     void UpdateFinished() {
         updateBusy=false;SetBusy(starting||engine!=null);
-        updateHint.Text=availableUpdate==null?"Yüklü sürüm güncel.":"Yeni sürüm indirilmeye hazır.";
+        updateHint.Text=updateFailed?"Güncelleme kontrolü şu anda kullanılamıyor.":availableUpdate==null?"Yüklü sürüm güncel.":"Yeni sürüm indirilmeye hazır.";
         update.Text=availableUpdate==null?"Güncellemeleri Kontrol Et":"Güncelle: v"+availableUpdate.Version;
     }
     void InstallUpdate() {

@@ -64,9 +64,9 @@ class Tests {
             string prefDir=Path.Combine(Path.GetTempPath(),"PreferencesTest-"+Guid.NewGuid().ToString("N"));
             try {
                 var pref=new AppPreferences();pref.PutServer("Test server","203.0.113.5");pref.PutServer("TEST SERVER","203.0.113.6");
-                Assert(pref.Servers.Count==2);pref.WindowWidth=720;pref.WindowHeight=560;pref.Light=true;pref.Accent=2;pref.SecondEnabled=true;pref.Slots[1].IP="203.0.113.6";
+                Assert(pref.Servers.Count==2);pref.WindowWidth=720;pref.WindowHeight=560;pref.Light=true;pref.Accent=2;pref.PremiumAccent="Blue";pref.LogAutoScroll=false;pref.LogLevel=2;pref.SecondEnabled=true;pref.Slots[1].IP="203.0.113.6";
                 string prefFile=Path.Combine(prefDir,"preferences.json");pref.SaveTo(prefFile);var loaded=AppPreferences.LoadFrom(prefFile);
-                Assert(loaded.WindowWidth==720&&loaded.WindowHeight==560);Assert(loaded.Light&&loaded.Accent==2&&loaded.SecondEnabled&&loaded.Slots[1].IP=="203.0.113.6");Assert(loaded.Servers[1].IP=="203.0.113.6");
+                Assert(loaded.WindowWidth==720&&loaded.WindowHeight==560);Assert(loaded.PremiumAccent=="Blue"&&!loaded.LogAutoScroll&&loaded.LogLevel==2);Assert(loaded.Light&&loaded.Accent==2&&loaded.SecondEnabled&&loaded.Slots[1].IP=="203.0.113.6");Assert(loaded.Servers[1].IP=="203.0.113.6");
                 loaded.Light=false;loaded.SaveTo(prefFile);Assert(!AppPreferences.LoadFrom(prefFile).Light);
                 Reject(delegate{pref.PutServer("Invalid","not-ip");});
             }finally{if(Directory.Exists(prefDir))Directory.Delete(prefDir,true);}

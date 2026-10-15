@@ -9,7 +9,7 @@ partial class MainForm {
     void CaptureDesign(string name){Application.DoEvents();using(var bitmap=new Bitmap(Width,Height)){DrawToBitmap(bitmap,ClientRectangle);bitmap.Save(name);}}
     public void VerifyDesign(){
         MaximumSize=new Size(8192,8192);SizePreview(1484,1060);LayoutWindow();ShowPage(0);CaptureDesign("ui-connection.png");
-        DesignAssert(slots.Length==1,"single client only");DesignAssert(!clientBadge.Text.Contains("Başarılı"),"unverified must not be success");
+        DesignAssert(slots.Length==1,"single client only");DesignAssert(!clientBadge.Text.Contains("Başarılı"),"unverified must not be success");ready=true;RefreshConnectionStatus();DesignAssert(clientBadge.Text=="Doğrulanmadı","engine ready alone is not game verification");ready=false;RefreshConnectionStatus();
         ShowPage(1);CaptureDesign("ui-settings.png");ShowPage(2);CaptureDesign("ui-logs.png");
         AppendLogEntries("2026-10-15 05:30:01 INFO Uygulama başlatıldı.\n2026-10-15 05:30:02 WARN Süreç bilgisi okunamadı: Erişim reddedildi.");RefreshLogView(true);
         int original=visibleLogs.Count;var activeBefore=slots[0].Active;bool readyBefore=ready;SetLogPaused(true);AppendLogEntries("2026-10-15 05:30:03 ERROR Kontrol test kaydı.");RefreshLogView(false);

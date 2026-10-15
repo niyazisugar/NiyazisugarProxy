@@ -9,7 +9,7 @@ partial class MainForm {
     PremiumCard connectionCard=new PremiumCard(),stateCard=new PremiumCard(),managementCard=new PremiumCard(),noticeCard=new PremiumCard();
     PremiumCard gameField=new PremiumCard(),ipField=new PremiumCard();
     PremiumIcon brandMark=new PremiumIcon{Symbol="logo"},stateIcon=new PremiumIcon{Symbol="shield"};
-    PremiumBrand brand=new PremiumBrand();Label brandSub=new Label(),versionBadge=new Label(),clientTitle=new Label(),clientBadge=new PremiumBadge();
+    PremiumBrand brand=new PremiumBrand();Label brandSub=new Label(),versionBadge=new PremiumVersionBadge(),clientTitle=new Label(),clientBadge=new PremiumBadge();
     Label proxyLabel=new PremiumHelpLabel(),serverLabel=new PremiumHelpLabel(),gameLabel=new PremiumHelpLabel(),ipLabel=new PremiumHelpLabel(),fileName=new Label(),filePath=new Label(),fileHint=new Label();
     Label stateHeading=new Label(),stateTitle=new Label(),stateDescription=new Label(),selectedProxyCaption=new Label(),selectedProxyValue=new Label(),selectedServerCaption=new Label(),selectedServerValue=new Label(),managementHeading=new Label(),footer=new Label(),footerRight=new Label();
     PremiumButton changeProxy,listLink;PremiumIcon fileIcon=new PremiumIcon{Symbol="file"},noticeIcon=new PremiumIcon{Symbol="info"};
@@ -89,18 +89,19 @@ partial class MainForm {
             foreach(var page in pages)page.AutoScrollPosition=Point.Empty;float contentWidth=width-68;
             LayoutConnection(width-44,compact);LayoutSettings(contentWidth+16,compact);LayoutLogs(width,compact);
         }finally{foreach(var page in pages)page.ResumeLayout(true);ResumeLayout(true);}}
+    void ConnectionPlace(Control control,float x,float y,float w,float h,float font=22,bool bold=false){Place(control,x,y*1.02f,w,h*1.02f,font,bold);}
     void LayoutConnection(float width,bool compact){
-        float left=compact?width:width*.645f,right=width-left-18;Place(connectionCard,12,20,left,764);Place(clientTitle,28,25,left-260,47,34,true);Place(clientBadge,left-222,27,194,45,20,true);
-        Place(proxyLabel,28,90,left-56,35,23,true);Place(proxies,28,132,left-250,60,23);Place(changeProxy,left-204,132,176,60,21);
-        Place(serverLabel,28,216,left-56,35,23,true);Place(slots[0].Server,28,259,left-56,60,23);Place(gameLabel,28,343,left-56,35,23,true);
-        Place(gameField,28,385,left-56,90);Place(fileIcon,26,20,43,48);Place(fileName,104,18,left-368,30,22,true);Place(filePath,104,50,left-368,28,19);Place(slots[0].Select,left-250,14,180,62,21);Place(fileHint,28,489,left-56,30,19);
-        Place(ipLabel,28,540,left-56,35,23,true);Place(ipField,28,575,left-250,60);Place(serverIP,20,18,left-290,30,23);Place(slots[0].Save,left-204,575,176,60,21);
-        float actionWidth=left-56,primaryWidth=actionWidth*.375f,stopWidth=actionWidth*.292f;Place(connect,28,666,primaryWidth,72,24,true);Place(stop,44+primaryWidth,666,stopWidth,72,23,true);Place(slots[0].Launch,64+primaryWidth+stopWidth,666,actionWidth-primaryWidth-stopWidth-36,72,23,true);
+        float left=compact?width:width*.645f,right=width-left-18;ConnectionPlace(connectionCard,12,20,left,764);ConnectionPlace(clientTitle,28,25,left-260,47,34,true);ConnectionPlace(clientBadge,left-222,27,194,45,20,true);
+        ConnectionPlace(proxyLabel,28,90,left-56,35,24,true);ConnectionPlace(proxies,28,132,left-250,60,24);ConnectionPlace(changeProxy,left-204,132,176,60,21);
+        ConnectionPlace(serverLabel,28,216,left-56,35,24,true);ConnectionPlace(slots[0].Server,28,259,left-56,60,24);ConnectionPlace(gameLabel,28,343,left-56,35,24,true);
+        ConnectionPlace(gameField,28,385,left-56,90);ConnectionPlace(fileIcon,26,20,43,48);ConnectionPlace(fileName,104,18,left-368,30,24,true);ConnectionPlace(filePath,104,50,left-368,28,19);ConnectionPlace(slots[0].Select,left-250,14,180,62,21);ConnectionPlace(fileHint,28,489,left-56,30,19);
+        ConnectionPlace(ipLabel,28,540,left-56,35,24,true);ConnectionPlace(ipField,28,575,left-250,60);ConnectionPlace(serverIP,20,18,left-290,30,23);ConnectionPlace(slots[0].Save,left-204,575,176,60,21);
+        float actionWidth=left-56,primaryWidth=actionWidth*.375f,stopWidth=actionWidth*.292f;ConnectionPlace(connect,28,666,primaryWidth,72,24,true);ConnectionPlace(stop,44+primaryWidth,666,stopWidth,72,23,true);ConnectionPlace(slots[0].Launch,64+primaryWidth+stopWidth,666,actionWidth-primaryWidth-stopWidth-36,72,23,true);
         float rightX=compact?12:30+left,rightY=compact?804:20;if(compact)right=left;
-        Place(stateCard,rightX,rightY,right,494);Place(stateHeading,30,26,right-60,46,29,true);Place(stateIcon,right/2-46,100,92,96);Place(stateTitle,20,212,right-40,48,30,true);stateTitle.TextAlign=ContentAlignment.MiddleCenter;Place(stateDescription,30,274,right-60,74,21);stateDescription.TextAlign=ContentAlignment.TopCenter;Place(rules[1],30,354,right-60,1);
-        Place(detailsIcons[0],32,383,27,28);Place(detailsIcons[1],32,436,27,28);Place(selectedProxyCaption,84,381,145,33,20);Place(selectedProxyValue,215,381,right-245,33,20);selectedProxyValue.TextAlign=ContentAlignment.MiddleRight;Place(selectedServerCaption,84,434,130,33,20);Place(selectedServerValue,215,434,right-245,33,20);selectedServerValue.TextAlign=ContentAlignment.MiddleRight;
-        Place(managementCard,rightX,rightY+512,right,252);Place(managementHeading,30,25,right-60,42,29,true);Place(add,30,90,(right-80)/2,72,21,true);Place(load,50+(right-80)/2,90,(right-80)/2,72,20);Place(listLink,20,181,right-40,45,21,true);
-        float noticeY=compact?rightY+784:802;Place(noticeCard,12,noticeY,width,60);Place(noticeIcon,20,17,27,27);Place(status,72,13,width-96,40,18);Place(footer,16,noticeY+77,320,30,18);Place(footerRight,Math.Max(360,width-490),noticeY+77,Math.Min(490,width-350),30,18);pages[0].AutoScrollMinSize=new Size(0,(int)((noticeY+122)*layoutScale));
+        ConnectionPlace(stateCard,rightX,rightY,right,494);ConnectionPlace(stateHeading,30,26,right-60,46,29,true);ConnectionPlace(stateIcon,right/2-46,100,92,96);ConnectionPlace(stateTitle,20,212,right-40,48,30,true);stateTitle.TextAlign=ContentAlignment.MiddleCenter;ConnectionPlace(stateDescription,30,274,right-60,74,22);stateDescription.TextAlign=ContentAlignment.TopCenter;ConnectionPlace(rules[1],30,354,right-60,1);
+        ConnectionPlace(detailsIcons[0],32,383,27,28);ConnectionPlace(detailsIcons[1],32,436,27,28);ConnectionPlace(selectedProxyCaption,84,381,145,33,20);ConnectionPlace(selectedProxyValue,215,381,right-245,33,20);selectedProxyValue.TextAlign=ContentAlignment.MiddleRight;ConnectionPlace(selectedServerCaption,84,434,130,33,20);ConnectionPlace(selectedServerValue,215,434,right-245,33,20);selectedServerValue.TextAlign=ContentAlignment.MiddleRight;
+        ConnectionPlace(managementCard,rightX,rightY+512,right,252);ConnectionPlace(managementHeading,30,25,right-60,42,29,true);ConnectionPlace(add,30,90,(right-80)/2,72,21,true);ConnectionPlace(load,50+(right-80)/2,90,(right-80)/2,72,20);ConnectionPlace(listLink,20,181,right-40,45,21,true);
+        float noticeY=compact?rightY+784:802;ConnectionPlace(noticeCard,12,noticeY,width,60);ConnectionPlace(noticeIcon,20,17,27,27);ConnectionPlace(status,72,13,width-96,40,18);ConnectionPlace(footer,16,noticeY+77,320,30,18);ConnectionPlace(footerRight,Math.Max(360,width-490),noticeY+77,Math.Min(490,width-350),30,18);pages[0].AutoScrollMinSize=new Size(0,(int)((noticeY+122)*1.02f*layoutScale));
     }
     void LayoutSettings(float width,bool compact){
         Place(settingsIcon,40,36,57,57);Place(settingsTitle,136,34,width-130,62,52,true);Place(settingsSub,136,100,width-130,38,24);

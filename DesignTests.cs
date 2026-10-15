@@ -10,6 +10,7 @@ partial class MainForm {
     public void VerifyDesign(){
         MaximumSize=new Size(8192,8192);SizePreview(740,530);LayoutWindow();ShowPage(0);CheckCompactViewport();CaptureDesign("ui-connection.png");
         DesignAssert(slots.Length==1,"single client only");DesignAssert(!clientBadge.Text.Contains("Başarılı"),"unverified must not be success");ready=true;RefreshConnectionStatus();DesignAssert(clientBadge.Text=="Doğrulanmadı","engine ready alone is not game verification");ready=false;RefreshConnectionStatus();
+        ApplyProxyProbe(new ProxyProbeResult{TcpMilliseconds=42,LookupAttempted=true,IP="203.0.113.7",Country="Romanya",Provider="Test fixture"});DesignAssert(latencyValue.Text=="42 ms"&&exitValue.Text=="203.0.113.7"&&countryValue.Text=="Romanya"&&clientBadge.Text!="Başarılı","probe result does not verify game routing");ApplyProxyProbe(new ProxyProbeResult{LookupAttempted=true,Error="Test fixture failure"});DesignAssert(latencyValue.Text=="Ulaşılamadı"&&exitValue.Text=="Doğrulanamadı","probe failure shown honestly");ResetProxyProbe();
         ShowPage(1);CaptureDesign("ui-settings.png");ShowPage(2);CaptureDesign("ui-logs.png");
         AppendLogEntries("2026-10-15 05:30:01 INFO Uygulama başlatıldı.\n2026-10-15 05:30:02 WARN Süreç bilgisi okunamadı: Erişim reddedildi.");RefreshLogView(true);
         int original=visibleLogs.Count;var activeBefore=slots[0].Active;bool readyBefore=ready;SetLogPaused(true);AppendLogEntries("2026-10-15 05:30:03 ERROR Kontrol test kaydı.");RefreshLogView(false);

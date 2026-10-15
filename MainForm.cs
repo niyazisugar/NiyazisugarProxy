@@ -48,10 +48,10 @@ partial class MainForm : Form {
         previewMode=preview;preferences=AppPreferences.Load();InitializeDesign();
         RefreshServers();var saved=preferences.Slots[0];slots[0].Launcher=saved.Launcher;slots[0].Files=saved.Files??new string[0];client.Text=String.Join(" ; ",slots[0].Files);serverIP.Text=saved.IP??"";
         foreach(var profile in preferences.Servers)if(profile.IP==serverIP.Text){slots[0].Server.SelectedItem=profile;break;}
-        if(!preview)RestoreProxies();proxies.SelectedIndexChanged+=delegate{SaveProxies();UpdateConnectionDetails();};
+        if(!preview)RestoreProxies();proxies.SelectedIndexChanged+=delegate{SaveProxies();UpdateConnectionDetails();ResetProxyProbe();};
         initializing=false;UpdateGameFile();ApplyTheme();ShowPage(0);SetBusy(false);RefreshConnectionStatus();
         Resize+=delegate{if(!initializing&&WindowState!=FormWindowState.Minimized){LayoutWindow();RoundWindow();}};ResizeEnd+=delegate{Persist();};LayoutWindow();RoundWindow();FormClosing+=OnClosing;
-        if(!preview){logTimer=new System.Windows.Forms.Timer{Interval=250};logTimer.Tick+=delegate{DrainEngineLogs();RefreshLogView(false);if(DateTime.UtcNow>=nextPerformance){nextPerformance=DateTime.UtcNow.AddMinutes(1);RecordPerformance();}};logTimer.Start();
+        if(!preview){logTimer=new System.Windows.Forms.Timer{Interval=250};logTimer.Tick+=delegate{DrainEngineLogs();RefreshLogView(false);PollProxyProbe(false);if(DateTime.UtcNow>=nextPerformance){nextPerformance=DateTime.UtcNow.AddMinutes(1);RecordPerformance();}};logTimer.Start();
             try{localLogPath=Diagnostics.CreateSession();Log("Uygulama başlatıldı.");}catch(Exception ex){AppendLogEntries("Log klasörü oluşturulamadı: "+ex.Message);}
             Shown+=delegate{CheckUpdates(null,EventArgs.Empty);};}
     }

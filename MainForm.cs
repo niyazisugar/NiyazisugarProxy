@@ -88,7 +88,7 @@ partial class MainForm : Form {
         }
         AppendLogEntries(text);
     }
-    void Error(Exception e) {MessageBox.Show(this,e.Message,"NiyazisugarProxy",MessageBoxButtons.OK,MessageBoxIcon.Error);}
+    void Error(Exception e) {MessageBox.Show(this,e.Message,"NiyaziSUGAR Proxy",MessageBoxButtons.OK,MessageBoxIcon.Error);}
     void RestoreProxies(){try{var saved=ProxyVault.Load();proxyLoading=true;savedSecondProxy=saved.Selected[1];for(int i=0;i<slots.Length;i++){slots[i].Proxy.Items.AddRange(saved.Items);int selected=saved.Selected[i];slots[i].Proxy.SelectedIndex=saved.Items.Length==0?-1:selected>=0&&selected<saved.Items.Length?selected:Math.Min(i,saved.Items.Length-1);}}catch(Exception ex){AppendLogEntries("Kayıtlı proxy listesi okunamadı; kayıt dosyası korundu. "+ex.GetType().Name+Environment.NewLine);}finally{proxyLoading=false;}}
     void SaveProxies(){if(initializing||previewMode||proxyLoading)return;try{var items=new List<ProxyItem>();foreach(ProxyItem item in proxies.Items)items.Add(item);ProxyVault.Save(new ProxySnapshot{Items=items.ToArray(),Selected=new int[]{slots[0].Proxy.SelectedIndex,savedSecondProxy}});}catch(Exception ex){Log("Proxy listesi kaydedilemedi: "+ex.GetType().Name);}}
     void LoadList(object sender,EventArgs e) {
@@ -232,7 +232,7 @@ partial class MainForm : Form {
         update.Text=availableUpdate==null?"Güncellemeleri Kontrol Et":"Güncelle: v"+availableUpdate.Version;
     }
     void InstallUpdate() {
-        if(MessageBox.Show(this,"Yeni sürüm indirilecek ve uygulama yeniden başlayacak. Oyunlarınızı önce kapatın.","NiyazisugarProxy",MessageBoxButtons.OKCancel)!=DialogResult.OK)return;
+        if(MessageBox.Show(this,"Yeni sürüm indirilecek ve uygulama yeniden başlayacak. Oyunlarınızı önce kapatın.","NiyaziSUGAR Proxy",MessageBoxButtons.OKCancel)!=DialogResult.OK)return;
         updateBusy=true;update.Enabled=false;connect.Enabled=false;update.Text="İndiriliyor…";
         var thread=new Thread(delegate() {
             try {

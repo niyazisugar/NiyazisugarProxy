@@ -48,6 +48,7 @@ class Tests {
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(2,2),new System.Drawing.Size(840,650),10)==13);
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(839,649),new System.Drawing.Size(840,650),10)==17);
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(200,300),new System.Drawing.Size(840,650),10)==1);
+            var book=new LogBook();for(int entry=0;entry<5000;entry++)book.Add("2026-10-15 05:30:01 INFO Entry "+entry);Assert(book.Snapshot().Count==1500);Assert(book.Snapshot()[0].Message=="Entry 3500");book.Add("2026-10-15 05:30:02 WARN [123 1ms] Örnek uyarı");Assert(LogBook.Filter(book.Snapshot(),"UYARI","UYARI").Count==1);Assert(LogBook.Filter(book.Snapshot(),"Entry","HATA").Count==0);Console.WriteLine("Bounded log model, search and severity filter tests passed.");
             var logBuffer=new EngineLogBuffer();for(int n=0;n<100000;n++)logBuffer.Add("Flood log "+n);Assert(logBuffer.Count==500);string firstBatch=logBuffer.Drain();Assert(firstBatch.Contains("99500"));Assert(logBuffer.Count==400);while(logBuffer.Count>0)logBuffer.Drain();Assert(logBuffer.Drain()=="");
             logBuffer.Add(new string('x',100000));Assert(logBuffer.Drain().Length<4200);Console.WriteLine("Log flood queue bound, batch drain and line-size tests passed.");
             string vaultDir=Path.Combine(Path.GetTempPath(),"ProxyVaultTest-"+Guid.NewGuid().ToString("N"));

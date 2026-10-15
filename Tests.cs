@@ -42,9 +42,11 @@ class Tests {
                 RelayTests.VerifyLiveEngine(args[1],adapter.alias);
                 Console.WriteLine("Actual sing-box config validation passed with and without fallback.");return 0;
             }
-            Assert(WindowGeometry.Restore(0,0,new System.Drawing.Size(1920,1080))==new System.Drawing.Size(840,650));
+            Assert(WindowGeometry.Restore(0,0,new System.Drawing.Size(1920,1080))==new System.Drawing.Size(740,530));
             Assert(WindowGeometry.Restore(4000,4000,new System.Drawing.Size(1366,768))==new System.Drawing.Size(1326,728));
-            Assert(WindowGeometry.Restore(1,1,new System.Drawing.Size(1920,1080))==new System.Drawing.Size(640,520));
+            Assert(WindowGeometry.Restore(0,0,new System.Drawing.Size(800,760))==new System.Drawing.Size(740,530));
+            Assert(WindowGeometry.Restore(4000,4000,new System.Drawing.Size(800,760))==new System.Drawing.Size(760,720));
+            Assert(WindowGeometry.Restore(1,1,new System.Drawing.Size(1920,1080))==new System.Drawing.Size(640,460));
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(2,2),new System.Drawing.Size(840,650),10)==13);
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(839,649),new System.Drawing.Size(840,650),10)==17);
             Assert(WindowGeometry.HitTest(new System.Drawing.Point(200,300),new System.Drawing.Size(840,650),10)==1);

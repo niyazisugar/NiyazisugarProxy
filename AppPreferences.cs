@@ -7,6 +7,7 @@ class ServerProfile { public string Name {get;set;} public string IP {get;set;} 
 class SlotPreference {public string Launcher {get;set;} public string[] Files {get;set;} public string IP {get;set;} }
 class AppPreferences {
     public string PremiumAccent {get;set;} public bool LogAutoScroll {get;set;} public int LogLevel {get;set;}
+    public int LayoutRevision {get;set;}
     public int WindowWidth {get;set;} public int WindowHeight {get;set;}
     public bool Light {get;set;} public int Accent {get;set;} public bool SecondEnabled {get;set;}
     public List<ServerProfile> Servers {get;set;}

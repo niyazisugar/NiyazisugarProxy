@@ -7,10 +7,10 @@ static class Palette {
     public static Color Tint(Color a,Color b,float value){return Color.FromArgb((int)(a.R+(b.R-a.R)*value),(int)(a.G+(b.G-a.G)*value),(int)(a.B+(b.B-a.B)*value));}
 }
 static class Symbols {
-    public static void Draw(Graphics g,string name,RectangleF rect,Color color){var state=g.Save();g.TranslateTransform(rect.X,rect.Y);g.ScaleTransform(rect.Width/24f,rect.Height/24f);g.SmoothingMode=SmoothingMode.AntiAlias;using(var pen=new Pen(color,1.8f)){pen.StartCap=pen.EndCap=LineCap.Round;pen.LineJoin=LineJoin.Round;using(var brush=new SolidBrush(color)){
+    public static void Draw(Graphics g,string name,RectangleF rect,Color color){if(rect.Width<=0||rect.Height<=0)return;var state=g.Save();g.TranslateTransform(rect.X,rect.Y);g.ScaleTransform(rect.Width/24f,rect.Height/24f);g.SmoothingMode=SmoothingMode.AntiAlias;using(var pen=new Pen(color,1.8f)){pen.StartCap=pen.EndCap=LineCap.Round;pen.LineJoin=LineJoin.Round;using(var brush=new SolidBrush(color)){
         switch(name){
         case "logo":using(var gold=new LinearGradientBrush(new Rectangle(0,0,24,24),Color.FromArgb(255,224,153),Color.FromArgb(164,117,45),60f)){g.FillPolygon(gold,new PointF[]{new PointF(1,23),new PointF(1,6),new PointF(5,9),new PointF(5,19)});g.FillPolygon(gold,new PointF[]{new PointF(1,3),new PointF(6,0),new PointF(19,9),new PointF(19,2),new PointF(23,4),new PointF(23,18)});g.FillPolygon(gold,new PointF[]{new PointF(7,7),new PointF(23,20),new PointF(18,24),new PointF(7,15),new PointF(7,21),new PointF(3,19),new PointF(3,8)});}break;
-        case "link":g.TranslateTransform(12,12);g.RotateTransform(-43);g.DrawArc(pen,-4,-11,8,13,0,290);g.DrawArc(pen,-4,-2,8,13,180,290);g.DrawLine(pen,0,-4,0,4);break;
+        case "link":g.TranslateTransform(12,12);g.RotateTransform(43);using(var first=RoundedPanel.Shape(new Rectangle(-4,-11,8,14),4))using(var second=RoundedPanel.Shape(new Rectangle(-4,-3,8,14),4)){g.DrawPath(pen,first);g.DrawPath(pen,second);}g.DrawLine(pen,0,-5,0,5);break;
         case "folder":g.DrawLines(pen,new Point[]{new Point(2,6),new Point(2,21),new Point(22,21),new Point(22,8),new Point(11,8),new Point(8,4),new Point(2,4),new Point(2,6)});break;
         case "list":for(int y=5;y<23;y+=7){g.FillRectangle(brush,1,y,2,2);g.DrawLine(pen,7,y+1,22,y+1);}break;
         case "gear":var points=new PointF[32];for(int i=0;i<32;i++){double a=i*Math.PI/16;float r=(i%4==1||i%4==2)?11:8.5f;points[i]=new PointF(12+(float)Math.Cos(a)*r,12+(float)Math.Sin(a)*r);}using(var path=new GraphicsPath()){path.FillMode=FillMode.Alternate;path.AddPolygon(points);path.AddEllipse(8,8,8,8);g.FillPath(brush,path);}break;
@@ -57,7 +57,7 @@ class PremiumComboBox : ComboBox {
     public PremiumComboBox(){DropDownStyle=ComboBoxStyle.DropDownList;FlatStyle=FlatStyle.Flat;DrawMode=DrawMode.OwnerDrawFixed;IntegralHeight=false;MaxDropDownItems=12;DrawItem+=PaintItem;}
     void PaintItem(object sender,DrawItemEventArgs e){Color fill=(e.State&DrawItemState.Selected)!=0?Palette.Tint(Palette.Card,Palette.Gold,.14f):Palette.Field;using(var brush=new SolidBrush(fill))e.Graphics.FillRectangle(brush,e.Bounds);if(e.Index>=0)TextRenderer.DrawText(e.Graphics,Items[e.Index].ToString(),Font,e.Bounds,Palette.Text,TextFormatFlags.Left|TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis);}
     void PaintClosed(Graphics g){if(Width<1||Height<1)return;g.SmoothingMode=SmoothingMode.AntiAlias;using(var path=RoundedPanel.Shape(ClientRectangle,9))using(var brush=new SolidBrush(Palette.Field))using(var pen=new Pen(Palette.Muted)){g.FillPath(brush,path);g.DrawPath(pen,path);}TextRenderer.DrawText(g,Text,Font,new Rectangle(18,0,Math.Max(1,Width-57),Height),Enabled?Palette.Text:Palette.Muted,TextFormatFlags.VerticalCenter|TextFormatFlags.EndEllipsis|TextFormatFlags.NoPadding);Symbols.Draw(g,"chevron",new RectangleF(Width-35,(Height-18)/2,18,18),Palette.Muted);}
-    protected override void WndProc(ref Message m){base.WndProc(ref m);if(m.Msg==15){using(var g=Graphics.FromHwnd(Handle))PaintClosed(g);}else if(m.Msg==0x318&&m.WParam!=IntPtr.Zero){using(var g=Graphics.FromHdc(m.WParam))PaintClosed(g);}}
+    protected override void WndProc(ref Message m){if(m.Msg==0x85){m.Result=IntPtr.Zero;return;}base.WndProc(ref m);if(m.Msg==15){using(var g=Graphics.FromHwnd(Handle))PaintClosed(g);}else if((m.Msg==0x318||m.Msg==0x317)&&m.WParam!=IntPtr.Zero){using(var g=Graphics.FromHdc(m.WParam))PaintClosed(g);}}
 }
 class PremiumToggle : CheckBox {
     public PremiumToggle(){SetStyle(ControlStyles.UserPaint|ControlStyles.OptimizedDoubleBuffer,true);Cursor=Cursors.Hand;AutoSize=false;BackColor=Color.Transparent;}
@@ -70,7 +70,8 @@ class Swatch : Button {
 }
 class PremiumBrand : Control {
     public PremiumBrand(){SetStyle(ControlStyles.SupportsTransparentBackColor|ControlStyles.UserPaint|ControlStyles.OptimizedDoubleBuffer,true);BackColor=Color.Transparent;}
-    protected override void OnPaint(PaintEventArgs e){var flags=TextFormatFlags.NoPadding|TextFormatFlags.SingleLine|TextFormatFlags.VerticalCenter;int left=TextRenderer.MeasureText("Niyazi",Font,new Size(1000,100),flags).Width;TextRenderer.DrawText(e.Graphics,"Niyazi",Font,new Rectangle(0,0,Width,Height),Palette.Text,flags);TextRenderer.DrawText(e.Graphics,"SUGAR",Font,new Rectangle(left,0,Math.Max(1,Width-left),Height),Palette.Gold,flags);}
+    protected override void OnPaint(PaintEventArgs e){e.Graphics.TextRenderingHint=System.Drawing.Text.TextRenderingHint.ClearTypeGridFit;using(var format=(StringFormat)StringFormat.GenericTypographic.Clone())using(var white=new SolidBrush(Palette.Text))using(var gold=new SolidBrush(Palette.Gold)){float y=(Height-Font.GetHeight(e.Graphics))/2;float left=e.Graphics.MeasureString("Niyazi",Font,1000,format).Width;e.Graphics.DrawString("Niyazi",Font,white,0,y,format);e.Graphics.DrawString("SUGAR",Font,gold,left,y,format);}}
+
 }
 class PremiumBadge : Label {
     public PremiumBadge(){DoubleBuffered=true;}

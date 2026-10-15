@@ -6,7 +6,7 @@ partial class MainForm {
     void DesignAssert(bool condition,string message){if(!condition)throw new Exception("Design: "+message);}
     void CaptureDesign(string name){Application.DoEvents();using(var bitmap=new Bitmap(Width,Height)){DrawToBitmap(bitmap,ClientRectangle);bitmap.Save(name);}}
     public void VerifyDesign(){
-        ClientSize=new Size(1484,1060);LayoutWindow();ShowPage(0);CaptureDesign("ui-connection.png");
+        MaximumSize=new Size(8192,8192);ClientSize=new Size(1484,1060);LayoutWindow();ShowPage(0);CaptureDesign("ui-connection.png");
         DesignAssert(slots.Length==1,"single client only");DesignAssert(!clientBadge.Text.Contains("Başarılı"),"unverified must not be success");
         ShowPage(1);CaptureDesign("ui-settings.png");ShowPage(2);CaptureDesign("ui-logs.png");
         AppendLogEntries("2026-10-15 05:30:01 INFO Uygulama başlatıldı.\n2026-10-15 05:30:02 WARN Süreç bilgisi okunamadı: Erişim reddedildi.");RefreshLogView(true);

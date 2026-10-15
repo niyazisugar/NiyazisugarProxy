@@ -91,18 +91,8 @@ class Tests {
             Console.WriteLine("Saved server/theme roundtrip and dual-client routing/conflict tests passed.");
             if(args.Length==1&&args[0]=="--ui-smoke") {
                 System.Windows.Forms.Application.EnableVisualStyles();
-                using(var form=new MainForm(true)){
-                    form.Show();System.Windows.Forms.Application.DoEvents();Assert(form.ClientSize.Width<=840);
-                    SavePreview(form,"ui-preview.png");
-                    form.ClientSize=new System.Drawing.Size(640,520);System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-compact.png");Assert(form.ClientSize.Width==640);
-                    FindSecond(form).Checked=true;System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-two-compact.png");
-                    form.ClientSize=new System.Drawing.Size(1000,780);System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-large.png");
-                    FindButton(form,"Ayarlar").PerformClick();System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-settings.png");
-                    FindButton(form,"Loglar").PerformClick();System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-logs.png");
-                    FindButton(form,"Ayarlar").PerformClick();var themeBox=FindTheme(form);Assert(themeBox!=null);themeBox.SelectedIndex=1;System.Windows.Forms.Application.DoEvents();SavePreview(form,"ui-light.png");
-                    form.Close();
-                }
-                Console.WriteLine("Windows UI construction and screenshot passed.");
+                using(var form=new MainForm(true)){form.Show();System.Windows.Forms.Application.DoEvents();form.VerifyDesign();form.Close();}
+                Console.WriteLine("Reference-screen, resize, DPI and log-control UI checks passed.");
             }
             string safe=Diagnostics.Clean("username demo password SECRET\n"+Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)+"\nAuthorization: Bearer TEST",new ProxyItem[]{new ProxyItem{User="demo",Password="SECRET"}});
             Assert(!safe.Contains("SECRET")&&!safe.Contains("demo")&&!safe.Contains("Bearer TEST"));
